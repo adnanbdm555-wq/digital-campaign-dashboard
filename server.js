@@ -32,13 +32,16 @@ app.get('/admin.html', requireAdmin, (req, res) => res.sendFile(path.join(__dirn
 
 store.ensureAdminExists(); // one-time migration if accounts already exist from before roles were added
 
-app.listen(config.port, () => {
-  console.log(`Digital Campaign Dashboard`);
-  console.log(`Control panel:  ${config.baseUrl}/  (redirects to /login.html if not signed in)`);
-  console.log(`Dashboard:      ${config.baseUrl}/dashboard.html`);
-  console.log(`Admin panel:    ${config.baseUrl}/admin.html  (admin accounts only)`);
-  scheduler.start();
-});
+if (!process.env.VERCEL) {
+  app.listen(config.port, () => {
+    console.log(`Digital Campaign Dashboard`);
+    console.log(`Control panel:  ${config.baseUrl}/  (redirects to /login.html if not signed in)`);
+    console.log(`Dashboard:      ${config.baseUrl}/dashboard.html`);
+    console.log(`Admin panel:    ${config.baseUrl}/admin.html  (admin accounts only)`);
+    scheduler.start();
+  });
+}
 
 module.exports = app;
+
 

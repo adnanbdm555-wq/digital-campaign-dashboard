@@ -14,12 +14,20 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
+const DATA_DIR = process.env.VERCEL ? path.join('/tmp', 'data') : path.join(__dirname, '..', 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const USER_DATA_DIR = path.join(DATA_DIR, 'user-data');
 
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-if (!fs.existsSync(USER_DATA_DIR)) fs.mkdirSync(USER_DATA_DIR, { recursive: true });
+function ensureDirs() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    if (!fs.existsSync(USER_DATA_DIR)) fs.mkdirSync(USER_DATA_DIR, { recursive: true });
+  } catch (e) {
+    console.error('Error ensuring dirs:', e);
+  }
+}
+ensureDirs();
+
 
 function readJson(file, fallback) {
   try {
@@ -100,7 +108,17 @@ function getUsersSummary() {
 // exactly one admin to start from.
 function ensureAdminExists() {
   const users = getUsers();
-  if (users.length === 0) return;
+  if (users.length === 0) {
+    const bcrypt = require('bcryptjs');
+    const defaultAdmin = store.createUser({
+      username: 'adpulsemedia',
+      passwordHash: bcrypt.hashSync('admin12345', 10),
+      displayName: 'Adnan Karim',
+      role: 'admin',
+    });
+    console.log('Default admin created: adpulsemedia');
+    return;
+  }
   if (users.some((u) => u.role === 'admin')) return;
   const oldest = [...users].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))[0];
   updateUserRole(oldest.id, 'admin');
