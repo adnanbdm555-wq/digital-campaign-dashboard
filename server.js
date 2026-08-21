@@ -39,3 +39,6 @@ app.listen(config.port, () => {
   console.log(`Admin panel:    ${config.baseUrl}/admin.html  (admin accounts only)`);
   scheduler.start();
 });
+
+module.exports = app;
+
