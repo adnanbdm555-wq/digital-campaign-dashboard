@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create account — Digital Campaign Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --bg:#101215; --panel:#1a1d22; --line:#2c3038; --red:#C8102E; --ink:#f3f1ea; --ink-dim:#9aa1ab; }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:32px;width:100%;max-width:360px;}
+  h1{font-size:20px;margin:0 0 6px;}
+  p.sub{color:var(--ink-dim);font-size:13px;margin:0 0 24px;line-height:1.5;}
+  label{display:block;font-size:12px;color:var(--ink-dim);margin:0 0 4px;}
+  input{width:100%;background:#0d0f12;border:1px solid var(--line);color:var(--ink);padding:9px 10px;border-radius:4px;font-size:14px;margin-bottom:16px;}
+  input:focus{outline:none;border-color:var(--red);}
+  button{width:100%;background:rgba(200,16,46,.15);border:1px solid var(--red);color:#fff;padding:10px;border-radius:4px;font-size:14px;font-weight:600;cursor:pointer;}
+  button:hover{background:rgba(200,16,46,.28);}
+  .error{color:#e8697a;font-size:12.5px;margin:-8px 0 14px;min-height:16px;}
+  .footer-link{text-align:center;font-size:13px;color:var(--ink-dim);margin-top:18px;}
+  .footer-link a{color:var(--ink);}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1 id="heading">Create your account</h1>
+  <p class="sub" id="subtext">This is your own space — your login, your connected accounts, your dashboard. Nobody else on the team sees or uses it.</p>
+  <form id="signupForm">
+    <label>Display name <span style="color:var(--ink-dim);">(optional)</span></label>
+    <input id="displayName" placeholder="e.g. Adnan — Media Buying">
+    <label>Username</label>
+    <input id="username" autocomplete="username" required>
+    <label>Password <span style="color:var(--ink-dim);">(6+ characters)</span></label>
+    <input id="password" type="password" autocomplete="new-password" required minlength="6">
+    <div class="error" id="err"></div>
+    <button type="submit">Create account</button>
+  </form>
+  <div class="footer-link">Already have one? <a href="/login.html">Log in</a></div>
+</div>
+<script>
+(async function checkStatus(){
+  try{
+    const res = await fetch('/auth/signup-status');
+    const data = await res.json();
+    if(!data.open){
+      document.getElementById('heading').textContent = 'Signups are closed';
+      document.getElementById('subtext').textContent = 'This dashboard already has an admin. Ask them to create an account for you from the Admin panel.';
+      document.getElementById('signupForm').style.display = 'none';
+    } else {
+      document.getElementById('subtext').textContent = "You're creating the first account for this dashboard, which makes you the admin — you'll be able to create logins for the rest of the team afterward.";
+    }
+  }catch(e){}
+})();
+
+document.getElementById('signupForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const displayName = document.getElementById('displayName').value.trim();
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  const errEl = document.getElementById('err');
+  errEl.textContent = '';
+  if(password.length < 6){ errEl.textContent = 'Password needs to be at least 6 characters.'; return; }
+  try{
+    const res = await fetch('/auth/signup', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ username, password, displayName }),
+    });
+    const data = await res.json();
+    if(!res.ok){ errEl.textContent = data.error || 'Could not create the account.'; return; }
+    location.href = '/';
+  }catch(err){
+    errEl.textContent = 'Could not reach the server.';
+  }
+});
+</script>
+</body>
+</html>

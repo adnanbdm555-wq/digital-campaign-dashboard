@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log in — Digital Campaign Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --bg:#101215; --panel:#1a1d22; --line:#2c3038; --red:#C8102E; --ink:#f3f1ea; --ink-dim:#9aa1ab; }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:32px;width:100%;max-width:360px;}
+  h1{font-size:20px;margin:0 0 6px;}
+  p.sub{color:var(--ink-dim);font-size:13px;margin:0 0 24px;line-height:1.5;}
+  label{display:block;font-size:12px;color:var(--ink-dim);margin:0 0 4px;}
+  input{width:100%;background:#0d0f12;border:1px solid var(--line);color:var(--ink);padding:9px 10px;border-radius:4px;font-size:14px;margin-bottom:16px;}
+  input:focus{outline:none;border-color:var(--red);}
+  button{width:100%;background:rgba(200,16,46,.15);border:1px solid var(--red);color:#fff;padding:10px;border-radius:4px;font-size:14px;font-weight:600;cursor:pointer;}
+  button:hover{background:rgba(200,16,46,.28);}
+  .error{color:#e8697a;font-size:12.5px;margin:-8px 0 14px;min-height:16px;}
+  .footer-link{text-align:center;font-size:13px;color:var(--ink-dim);margin-top:18px;}
+  .footer-link a{color:var(--ink);}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Log in</h1>
+  <p class="sub">Every team member has their own login and their own connected Facebook / Google / LinkedIn accounts — nothing here is shared between accounts.</p>
+  <form id="loginForm">
+    <label>Username</label>
+    <input id="username" autocomplete="username" required>
+    <label>Password</label>
+    <input id="password" type="password" autocomplete="current-password" required>
+    <div class="error" id="err"></div>
+    <button type="submit">Log in</button>
+  </form>
+  <div class="footer-link" id="signupLink">No account yet? <a href="/signup.html">Create one</a></div>
+</div>
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  const errEl = document.getElementById('err');
+  errEl.textContent = '';
+  try{
+    const res = await fetch('/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if(!res.ok){ errEl.textContent = data.error || 'Login failed.'; return; }
+    location.href = '/';
+  }catch(err){
+    errEl.textContent = 'Could not reach the server.';
+  }
+});
+</script>
+</body>
+</html>

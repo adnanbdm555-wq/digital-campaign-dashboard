@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Campaign Dashboard — Control Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --bg:#101215; --panel:#1a1d22; --line:#2c3038; --red:#C8102E; --ink:#f3f1ea; --ink-dim:#9aa1ab; --good:#4fae7a; --amber:#d9a441; }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;padding:32px 20px 80px;}
+  .wrap{max-width:760px;margin:0 auto;}
+  h1{font-size:22px;margin:0 0 6px;}
+  .sub{color:var(--ink-dim);font-size:13.5px;margin:0 0 28px;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:20px 22px;margin-bottom:18px;}
+  .card h2{font-size:15px;margin:0 0 14px;display:flex;align-items:center;gap:8px;}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--ink-dim);display:inline-block;}
+  .dot.on{background:var(--good);box-shadow:0 0 6px var(--good);}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap;}
+  .btn{background:transparent;border:1px solid var(--red);color:#fff;background:rgba(200,16,46,.15);padding:8px 16px;border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;text-decoration:none;display:inline-block;}
+  .btn:hover{background:rgba(200,16,46,.28);}
+  .btn.secondary{border-color:#6b7684;background:transparent;}
+  .btn.secondary:hover{background:rgba(255,255,255,.06);}
+  label{display:block;font-size:12px;color:var(--ink-dim);margin:10px 0 4px;}
+  input{width:100%;background:#0d0f12;border:1px solid var(--line);color:var(--ink);padding:8px 10px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:13px;}
+  input:focus{outline:none;border-color:var(--red);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .hint{font-size:11.5px;color:var(--ink-dim);margin-top:4px;}
+  #statusMsg{font-size:12.5px;margin-top:12px;color:var(--ink-dim);}
+  .footer-links{margin-top:24px;text-align:center;font-size:13px;}
+  .footer-links a{color:var(--ink-dim);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Digital Campaign Dashboard</h1>
+  <p class="sub">Connect your accounts, tell it which ad account / channel / property to pull from, and the dashboard stays live automatically.</p>
+
+  <div class="row" style="margin-bottom:20px;">
+    <span id="whoami" style="font-size:12.5px;color:var(--ink-dim);"></span>
+    <span>
+      <a class="btn secondary" id="adminLink" href="/admin.html" style="padding:5px 12px;font-size:12px;display:none;">Admin panel</a>
+      <button class="btn secondary" id="logoutBtn" style="padding:5px 12px;font-size:12px;">Log out</button>
+    </span>
+  </div>
+
+  <div class="card">
+    <h2><span class="dot" id="metaDot"></span> Facebook & Instagram (Meta)</h2>
+    <div class="row">
+      <span id="metaStatusText" style="font-size:13px;color:var(--ink-dim);">Not connected</span>
+      <a class="btn" href="/auth/meta">Connect Facebook & Instagram</a>
+    </div>
+    <label>Ad Account ID <span class="hint">(numbers only, or with the act_ prefix)</span></label>
+    <input id="metaAdAccountId" placeholder="1234567890">
+    <label>Result action type <span class="hint">(optional — e.g. lead, purchase, link_click. Leave blank to use a CPM-style proxy for Cost Per Result)</span></label>
+    <input id="metaResultActionType" placeholder="link_click">
+  </div>
+
+  <div class="card">
+    <h2><span class="dot" id="googleDot"></span> YouTube & Website (Google)</h2>
+    <div class="row">
+      <span id="googleStatusText" style="font-size:13px;color:var(--ink-dim);">Not connected</span>
+      <a class="btn" href="/auth/google">Connect Google</a>
+    </div>
+    <div class="grid2">
+      <div>
+        <label>YouTube Channel ID <span class="hint">("MINE" if you connected the channel owner's account)</span></label>
+        <input id="youtubeChannelId" placeholder="MINE">
+      </div>
+      <div>
+        <label>GA4 Property ID</label>
+        <input id="ga4PropertyId" placeholder="123456789">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="dot" id="linkedinDot"></span> LinkedIn (Ad Analytics)</h2>
+    <div class="row">
+      <span id="linkedinStatusText" style="font-size:13px;color:var(--ink-dim);">Not connected</span>
+      <a class="btn" href="/auth/linkedin">Connect LinkedIn</a>
+    </div>
+    <label>Ad Account ID <span class="hint">(numbers only, or with the urn:li:sponsoredAccount: prefix)</span></label>
+    <input id="linkedinAdAccountId" placeholder="123456789">
+    <div class="hint">Requires your LinkedIn app to be approved for the Marketing Developer Platform — see README.</div>
+  </div>
+
+  <div class="card">
+    <h2>TikTok <span class="hint" style="font-weight:400;">(manual until API access is approved)</span></h2>
+    <label>TikTok Reach</label>
+    <input id="tkReach" type="number" placeholder="0">
+  </div>
+
+  <div class="card">
+    <label>Date range (days back from today)</label>
+    <input id="dateRangeDays" type="number" value="30" style="max-width:120px;">
+    <div class="row" style="margin-top:16px;">
+      <button class="btn" id="saveBtn">Save Settings</button>
+      <button class="btn secondary" id="syncBtn">⟳ Sync Now</button>
+    </div>
+    <div id="statusMsg">—</div>
+  </div>
+
+  <div class="footer-links">
+    <a href="/dashboard.html">Open the campaign dashboard →</a>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+async function loadStatus(){
+  try{
+    const res = await fetch('/api/status');
+    const data = await res.json();
+
+    $('metaDot').classList.toggle('on', data.metaConnected);
+    $('metaStatusText').textContent = data.metaConnected ? 'Connected ✓' : 'Not connected';
+    $('googleDot').classList.toggle('on', data.googleConnected);
+    $('googleStatusText').textContent = data.googleConnected ? 'Connected ✓' : 'Not connected';
+    $('linkedinDot').classList.toggle('on', data.linkedinConnected);
+    $('linkedinStatusText').textContent = data.linkedinConnected ? 'Connected ✓' : 'Not connected';
+
+    const s = data.settings || {};
+    $('metaAdAccountId').value = s.metaAdAccountId || '';
+    $('metaResultActionType').value = s.metaResultActionType || '';
+    $('youtubeChannelId').value = s.youtubeChannelId || 'MINE';
+    $('ga4PropertyId').value = s.ga4PropertyId || '';
+    $('linkedinAdAccountId').value = s.linkedinAdAccountId || '';
+    $('dateRangeDays').value = s.dateRangeDays || 30;
+    $('tkReach').value = (data.manualOverrides || {}).tkReach ?? '';
+
+    $('statusMsg').textContent = data.lastSync
+      ? `Last synced ${new Date(data.lastSync).toLocaleString()}${data.lastError ? ' — issues: ' + data.lastError : ''}`
+      : 'Never synced yet.';
+  }catch(e){
+    $('statusMsg').textContent = 'Could not reach the backend — is the server running?';
+  }
+}
+
+$('saveBtn').addEventListener('click', async () => {
+  await fetch('/api/settings', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      metaAdAccountId: $('metaAdAccountId').value.trim(),
+      metaResultActionType: $('metaResultActionType').value.trim(),
+      youtubeChannelId: $('youtubeChannelId').value.trim() || 'MINE',
+      ga4PropertyId: $('ga4PropertyId').value.trim(),
+      linkedinAdAccountId: $('linkedinAdAccountId').value.trim(),
+      dateRangeDays: Number($('dateRangeDays').value) || 30,
+    }),
+  });
+  const tk = $('tkReach').value;
+  if(tk !== ''){
+    await fetch('/api/manual', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ tkReach: Number(tk) }),
+    });
+  }
+  $('statusMsg').textContent = 'Settings saved.';
+});
+
+$('syncBtn').addEventListener('click', async () => {
+  $('statusMsg').textContent = 'Syncing…';
+  try{
+    const res = await fetch('/api/refresh', { method: 'POST' });
+    const data = await res.json();
+    if(data.errors && data.errors.length){
+      $('statusMsg').textContent = 'Synced with issues: ' + data.errors.join(' | ');
+    } else {
+      $('statusMsg').textContent = 'Synced ✓';
+    }
+  }catch(e){
+    $('statusMsg').textContent = 'Sync failed: ' + e.message;
+  }
+  loadStatus();
+});
+
+loadStatus();
+
+async function loadMe(){
+  try{
+    const res = await fetch('/api/me');
+    const data = await res.json();
+    $('whoami').textContent = 'Logged in as ' + (data.displayName || data.username);
+    if(data.role === 'admin') $('adminLink').style.display = 'inline-block';
+  }catch(e){}
+}
+$('logoutBtn').addEventListener('click', async () => {
+  await fetch('/auth/logout', { method: 'POST' });
+  location.href = '/login.html';
+});
+loadMe();
+</script>
+</body>
+</html>
