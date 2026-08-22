@@ -19,7 +19,7 @@ router.get('/signup-status', (req, res) => {
   res.json({ open: store.getUsers().length === 0 });
 });
 
-const { createSessionCookie, clearSessionCookie, getUserIdFromRequest, createOAuthState, verifyOAuthState } = require('../sessionHelper');
+const { createSessionCookie, clearSessionCookie, getUserIdFromRequest, createOAuthState, verifyOAuthState, createDataCookie } = require('../sessionHelper');
 
 router.post('/signup', async (req, res) => {
   const { username, password, displayName } = req.body || {};
@@ -124,7 +124,10 @@ router.get('/google/callback', async (req, res) => {
       connectedAt: new Date().toISOString(),
     };
     store.saveTokens(userId, tokens);
-    res.setHeader('Set-Cookie', createSessionCookie(userId));
+    res.setHeader('Set-Cookie', [
+      createSessionCookie(userId),
+      createDataCookie('google_token', tokens.google)
+    ]);
     res.redirect('/?connected=google');
   } catch (e) {
     console.error('Google auth error:', e.message);
@@ -150,10 +153,13 @@ router.get('/linkedin/callback', async (req, res) => {
   try {
     const redirectUri = getRedirectUri(req, '/auth/linkedin/callback');
     const newTokens = await linkedinService.exchangeCodeForToken(code, redirectUri);
-    const tokens = store.getTokens(userId);
+    const tokens = store.getTokens(userId, req);
     tokens.linkedin = { ...newTokens, connectedAt: new Date().toISOString() };
     store.saveTokens(userId, tokens);
-    res.setHeader('Set-Cookie', createSessionCookie(userId));
+    res.setHeader('Set-Cookie', [
+      createSessionCookie(userId),
+      createDataCookie('linkedin_token', tokens.linkedin)
+    ]);
     res.redirect('/?connected=linkedin');
   } catch (e) {
     console.error('LinkedIn auth error:', e.response?.data || e.message);
