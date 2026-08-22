@@ -661,13 +661,20 @@
     const current = window._currentCreativeUrl || '';
     const url = prompt('Enter Video (YouTube / MP4) or Image URL:', current);
     if(url !== null){
-      window._currentCreativeUrl = url.trim();
-      renderCreativeMedia(url.trim(), $('campaignName')?.textContent, $('campaignDesc')?.textContent);
+      const trimmed = url.trim();
+      window._currentCreativeUrl = trimmed;
+      renderCreativeMedia(trimmed, $('campaignName')?.textContent, $('campaignDesc')?.textContent);
       checkpoint();
+      const cacheKey = getCacheKey();
+      try {
+        const cached = JSON.parse(localStorage.getItem(cacheKey) || '{}');
+        cached.creativeMediaUrl = trimmed;
+        localStorage.setItem(cacheKey, JSON.stringify(cached));
+      } catch(e){}
       fetch('/api/manual', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ creativeMediaUrl: url.trim() })
+        body: JSON.stringify({ creativeMediaUrl: trimmed })
       }).catch(()=>{});
     }
   };

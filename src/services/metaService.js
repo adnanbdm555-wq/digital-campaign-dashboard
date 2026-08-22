@@ -213,6 +213,43 @@ async function fetchCampaignAndCreative({ accessToken, adAccountId, metaCampaign
         }
       } catch (e) {}
     }
+
+    // Ad account videos fallback
+    if (!creativeMediaUrl) {
+      try {
+        const vidsRes = await axios.get(`${GRAPH}/${account}/advideos`, {
+          params: {
+            access_token: accessToken,
+            fields: 'id,source,picture,title,description,created_time',
+            limit: 5,
+          },
+        });
+        const vids = vidsRes.data.data || [];
+        for (const v of vids) {
+          if (v.source) { creativeMediaUrl = v.source; break; }
+          if (v.picture && !creativeMediaUrl) creativeMediaUrl = v.picture;
+          if (!campaignDesc && v.description) campaignDesc = v.description;
+        }
+      } catch (e) {}
+    }
+
+    // Ad account images fallback
+    if (!creativeMediaUrl) {
+      try {
+        const imgsRes = await axios.get(`${GRAPH}/${account}/adimages`, {
+          params: {
+            access_token: accessToken,
+            fields: 'id,url,permalink_url,created_time',
+            limit: 5,
+          },
+        });
+        const imgs = imgsRes.data.data || [];
+        for (const img of imgs) {
+          if (img.url) { creativeMediaUrl = img.url; break; }
+          if (img.permalink_url && !creativeMediaUrl) creativeMediaUrl = img.permalink_url;
+        }
+      } catch (e) {}
+    }
   } catch (err) {
     console.warn('Could not auto-fetch campaign creative:', err.response?.data?.error?.message || err.message);
   }
