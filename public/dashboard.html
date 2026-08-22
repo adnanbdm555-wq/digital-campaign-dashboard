@@ -650,15 +650,15 @@
     return state;
   }
 
-  function renderCreativeMedia(url){
+  function renderCreativeMedia(url, campName, campDesc){
     const container = $('mediaContainer');
     if(!container) return;
     if(!url || !url.trim()){
       container.innerHTML = `
         <div style="text-align:center;padding:40px 20px;color:var(--ink);">
           <div style="font-size:48px;margin-bottom:12px;">🎬</div>
-          <div style="font-size:18px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;">GFS Premium Video Creative</div>
-          <div style="font-size:13px;color:var(--ink-dim);margin-top:6px;">80 &amp; 120 Sq. Yards Luxury Villas · Leads &amp; Video Campaign</div>
+          <div style="font-size:18px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;">${campName || 'Campaign Video Creative'}</div>
+          <div style="font-size:13px;color:var(--ink-dim);margin-top:6px;">${campDesc || 'Digital Video Campaign · Leads &amp; Engagement'}</div>
           <div style="margin-top:16px;">
             <span style="font-size:11px;background:rgba(200,16,46,0.2);border:1px solid var(--red);color:#fff;padding:4px 12px;border-radius:20px;">Meta Video Ads Active</span>
           </div>
@@ -678,11 +678,11 @@
       }
       container.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width:100%;height:100%;border:none;"></iframe>`;
       $('mediaTypeTag').textContent = 'YOUTUBE VIDEO EMBED';
-    } else if(url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.ogg') || url.includes('.mp4?')){
+    } else if(url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.ogg') || url.includes('.mp4?') || url.includes('video')){
       container.innerHTML = `<video controls playsinline preload="metadata" style="width:100%;height:100%;object-fit:contain;background:#000;"><source src="${url}">Your browser does not support the video tag.</video>`;
-      $('mediaTypeTag').textContent = 'DIRECT MP4 VIDEO PLAYER';
+      $('mediaTypeTag').textContent = 'CAMPAIGN VIDEO PLAYER';
     } else {
-      container.innerHTML = `<img src="${url}" alt="Campaign Creative" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.src='';">`;
+      container.innerHTML = `<img src="${url}" alt="Campaign Creative" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.style.display='none';">`;
       $('mediaTypeTag').textContent = 'CAMPAIGN IMAGE BANNER';
     }
   }
@@ -703,9 +703,7 @@
       const el = $('dateRange');
       if(el) el.textContent = state.startDate + ' – ' + state.endDate;
     }
-    if(state.creativeMediaUrl !== undefined){
-      renderCreativeMedia(state.creativeMediaUrl);
-    }
+    renderCreativeMedia(state.creativeMediaUrl, state.campaignName, state.campaignDesc);
     FIELD_IDS.forEach(id => { const el = $(id); if(el && state[id] !== undefined) el.value = state[id]; });
     TEXT_IDS.forEach(id => { const el = $(id); if(el && state[id] !== undefined) el.textContent = state[id]; });
     updateAll();

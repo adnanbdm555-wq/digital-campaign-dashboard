@@ -165,14 +165,17 @@ const store = {
   // pulls, with their own manually-entered fields layered on top.
   getCampaignData: (userId) => {
     const settings = store.getSettings(userId);
+    const apiData = store.getApiData(userId);
+    const overrides = store.getManualOverrides(userId);
+
     return {
-      campaignName: settings.campaignName || '',
-      campaignDesc: settings.campaignDesc || '',
-      creativeMediaUrl: settings.creativeMediaUrl || '',
-      startDate: settings.startDate || '',
-      endDate: settings.endDate || '',
-      ...store.getApiData(userId),
-      ...store.getManualOverrides(userId),
+      campaignName: overrides.campaignName || settings.campaignName || apiData.campaignName || '',
+      campaignDesc: overrides.campaignDesc || settings.campaignDesc || apiData.campaignDesc || '',
+      creativeMediaUrl: overrides.creativeMediaUrl || settings.creativeMediaUrl || apiData.creativeMediaUrl || '',
+      startDate: settings.startDate || apiData.startDate || '',
+      endDate: settings.endDate || apiData.endDate || '',
+      ...apiData,
+      ...overrides,
     };
   },
 };

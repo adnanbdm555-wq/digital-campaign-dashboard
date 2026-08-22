@@ -28,6 +28,7 @@ router.get('/status', (req, res) => {
     googleConnected: !!tokens.google?.refresh_token,
     linkedinConnected: !!tokens.linkedin?.access_token,
     settings: store.getSettings(req.session.userId),
+    apiData: store.getApiData(req.session.userId),
     manualOverrides: store.getManualOverrides(req.session.userId),
   });
 });

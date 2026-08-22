@@ -40,6 +40,117 @@ async function exchangeForLongLivedToken(shortLivedToken) {
 }
 
 /**
+ * Automatically fetches the active/latest campaign name, ad copy, and creative media (video/image)
+ * from Meta Ads API so the dashboard top hero section populates automatically.
+ */
+async function fetchCampaignAndCreative({ accessToken, adAccountId }) {
+  const account = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`;
+  let campaignName = '';
+  let campaignDesc = '';
+  let creativeMediaUrl = '';
+
+  try {
+    // 1. Fetch campaigns from the ad account
+    const campRes = await axios.get(`${GRAPH}/${account}/campaigns`, {
+      params: {
+        access_token: accessToken,
+        fields: 'id,name,objective,status,created_time,start_time,stop_time',
+        limit: 10,
+      },
+    });
+
+    const campaigns = campRes.data.data || [];
+    if (campaigns.length > 0) {
+      const activeCamp = campaigns.find((c) => c.status === 'ACTIVE') || campaigns[0];
+      campaignName = activeCamp.name || '';
+    }
+
+    // 2. Fetch ads with creative details (body, title, video_id, image_url, object_story_spec)
+    const adsRes = await axios.get(`${GRAPH}/${account}/ads`, {
+      params: {
+        access_token: accessToken,
+        fields: 'id,name,status,creative{id,name,title,body,image_url,thumbnail_url,video_id,object_story_spec,effective_object_story_id}',
+        limit: 10,
+      },
+    });
+
+    const ads = adsRes.data.data || [];
+    if (ads.length > 0) {
+      const activeAd = ads.find((a) => a.status === 'ACTIVE') || ads[0];
+      const creative = activeAd.creative || {};
+
+      campaignDesc = creative.body || creative.title || '';
+
+      const spec = creative.object_story_spec || {};
+      if (spec.video_data) {
+        if (!campaignDesc && spec.video_data.message) campaignDesc = spec.video_data.message;
+        if (!campaignDesc && spec.video_data.title) campaignDesc = spec.video_data.title;
+        if (spec.video_data.image_url) creativeMediaUrl = spec.video_data.image_url;
+        if (spec.video_data.video_id) {
+          try {
+            const vidRes = await axios.get(`${GRAPH}/${spec.video_data.video_id}`, {
+              params: {
+                access_token: accessToken,
+                fields: 'id,source,picture,title,description',
+              },
+            });
+            if (vidRes.data.source) {
+              creativeMediaUrl = vidRes.data.source;
+            } else if (vidRes.data.picture && !creativeMediaUrl) {
+              creativeMediaUrl = vidRes.data.picture;
+            }
+            if (!campaignDesc && vidRes.data.description) {
+              campaignDesc = vidRes.data.description;
+            }
+          } catch (e) {
+            console.warn('Video fetch warning:', e.message);
+          }
+        }
+      } else if (spec.link_data) {
+        if (!campaignDesc && spec.link_data.message) campaignDesc = spec.link_data.message;
+        if (!campaignDesc && spec.link_data.name) campaignDesc = spec.link_data.name;
+        if (!campaignDesc && spec.link_data.description) campaignDesc = spec.link_data.description;
+        if (spec.link_data.picture) creativeMediaUrl = spec.link_data.picture;
+      }
+
+      if (!creativeMediaUrl) {
+        creativeMediaUrl = creative.image_url || creative.thumbnail_url || '';
+      }
+
+      if (creative.video_id && (!creativeMediaUrl || !creativeMediaUrl.endsWith('.mp4'))) {
+        try {
+          const vidRes = await axios.get(`${GRAPH}/${creative.video_id}`, {
+            params: {
+              access_token: accessToken,
+              fields: 'id,source,picture,title,description',
+            },
+          });
+          if (vidRes.data.source) {
+            creativeMediaUrl = vidRes.data.source;
+          } else if (vidRes.data.picture && !creativeMediaUrl) {
+            creativeMediaUrl = vidRes.data.picture;
+          }
+          if (!campaignDesc && vidRes.data.description) {
+            campaignDesc = vidRes.data.description;
+          }
+        } catch (e) {
+          console.warn('Video fetch warning:', e.message);
+        }
+      }
+
+      // If description is still empty, use ad name or campaign name
+      if (!campaignDesc) {
+        campaignDesc = activeAd.name || campaignName || '';
+      }
+    }
+  } catch (err) {
+    console.warn('Could not auto-fetch campaign creative:', err.response?.data?.error?.message || err.message);
+  }
+
+  return { campaignName, campaignDesc, creativeMediaUrl };
+}
+
+/**
  * Pulls everything the dashboard's Meta-fed fields need for one ad account
  * over a date range. Runs the four breakdown queries Meta requires
  * separately (Insights only allows certain breakdown combinations per call)
@@ -61,13 +172,19 @@ async function pullInsights({ accessToken, adAccountId, resultActionType, since,
   }
 
   const overall = await axios.get(`${GRAPH}/${account}/insights`, { params: { ...base, fields: 'reach,spend,actions,impressions,clicks,cpm' } });
-  const [byPlatform, byAgeGender, byRegion] = await Promise.all([
+  const [byPlatform, byAgeGender, byRegion, metaCreative] = await Promise.all([
     safeGet({ fields: 'reach', breakdowns: 'publisher_platform' }),
     safeGet({ fields: 'reach,spend', breakdowns: 'age,gender' }),
     safeGet({ fields: 'spend', breakdowns: 'region' }),
+    fetchCampaignAndCreative({ accessToken, adAccountId }),
   ]);
 
   const out = {};
+
+  // ---- Campaign Name, Description & Creative Media (Auto-detected from Meta) ----
+  if (metaCreative.campaignName) out.campaignName = metaCreative.campaignName;
+  if (metaCreative.campaignDesc) out.campaignDesc = metaCreative.campaignDesc;
+  if (metaCreative.creativeMediaUrl) out.creativeMediaUrl = metaCreative.creativeMediaUrl;
 
   // ---- Overall reach / spend / cost-per-result ----
   const overallRow = (overall.data.data || [])[0] || {};
@@ -120,10 +237,6 @@ async function pullInsights({ accessToken, adAccountId, resultActionType, since,
   Object.keys(ageBuckets).forEach((key) => (out[key] = +out[key].toFixed(2)));
 
   // ---- Location breakdown ----
-  // Meta returns whatever region names actually appear in your data, not a fixed
-  // Punjab/KP/Sindh/Balochistan list — so this is surfaced separately rather than
-  // silently forced into the dashboard's 4 rows. Check /api/status after a sync
-  // and copy these into the Manual Overrides form (locPct0-3) with the right labels.
   const regionSpend = {};
   let totalRegionSpend = 0;
   (byRegion.data.data || []).forEach((row) => {
@@ -142,4 +255,4 @@ async function pullInsights({ accessToken, adAccountId, resultActionType, since,
   return out;
 }
 
-module.exports = { getLoginUrl, exchangeCodeForToken, exchangeForLongLivedToken, pullInsights };
+module.exports = { getLoginUrl, exchangeCodeForToken, exchangeForLongLivedToken, pullInsights, fetchCampaignAndCreative };

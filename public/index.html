@@ -92,13 +92,13 @@
   </div>
 
   <div class="card">
-    <h2>Campaign Information & Media</h2>
-    <label>Campaign Name</label>
-    <input id="campaignNameInput" placeholder="e.g. GFS Premium Block 80 & 120 Sq. yards">
-    <label>Campaign Description</label>
-    <input id="campaignDescInput" placeholder="e.g. GFS Premium Video Leads Campaign Performance Analytics">
-    <label>Campaign Creative / Video URL <span class="hint">(MP4, WebM, YouTube, or Image URL for the hero section)</span></label>
-    <input id="creativeMediaUrlInput" placeholder="https://.../video.mp4 or YouTube URL or image link">
+    <h2>Campaign Information & Media <span class="hint" style="font-weight:400;">(Auto-fetched from Meta on Sync, or enter manual override)</span></h2>
+    <label>Campaign Name <span class="hint">(Leave blank to auto-detect from Meta)</span></label>
+    <input id="campaignNameInput" placeholder="Auto-detected from Meta campaign">
+    <label>Campaign Description / Ad Copy <span class="hint">(Leave blank to auto-detect ad text)</span></label>
+    <input id="campaignDescInput" placeholder="Auto-detected from Meta ad message / copy">
+    <label>Campaign Creative / Video URL <span class="hint">(Auto-detected video/image from Meta, or paste YouTube/MP4/Image link)</span></label>
+    <input id="creativeMediaUrlInput" placeholder="Auto-detected from Meta ad creative video or image">
   </div>
 
   <div class="card">
@@ -169,14 +169,15 @@ async function loadStatus(){
     $('linkedinStatusText').textContent = data.linkedinConnected ? 'Connected ✓' : 'Not connected';
 
     const s = data.settings || {};
+    const api = data.apiData || {};
     $('metaAdAccountId').value = s.metaAdAccountId || '';
     $('metaResultActionType').value = s.metaResultActionType || '';
     $('youtubeChannelId').value = s.youtubeChannelId || 'MINE';
     $('ga4PropertyId').value = s.ga4PropertyId || '';
     $('linkedinAdAccountId').value = s.linkedinAdAccountId || '';
-    $('campaignNameInput').value = s.campaignName || '';
-    $('campaignDescInput').value = s.campaignDesc || '';
-    $('creativeMediaUrlInput').value = s.creativeMediaUrl || '';
+    $('campaignNameInput').value = s.campaignName || api.campaignName || '';
+    $('campaignDescInput').value = s.campaignDesc || api.campaignDesc || '';
+    $('creativeMediaUrlInput').value = s.creativeMediaUrl || api.creativeMediaUrl || '';
     $('startDate').value = s.startDate || '';
     $('endDate').value = s.endDate || '';
     $('dateRangeDays').value = s.dateRangeDays ?? 30;
