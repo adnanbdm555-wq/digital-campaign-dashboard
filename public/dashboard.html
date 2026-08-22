@@ -409,7 +409,7 @@
           <div class="mono" style="font-size:26px;font-weight:700;"><input type="number" id="gaConversions" value="0" style="width:100px;font-size:26px;font-weight:700;"></div>
         </div>
       </div>
-      <div class="hint" style="margin:16px 0 0;">Pulled from Google Analytics 4 — last 30 days.</div>
+      <div class="hint" id="ga4Subline" style="margin:16px 0 0;">Pulled from Google Analytics 4 (or entered in control panel).</div>
     </div>
   </div>
 
@@ -421,29 +421,29 @@
         <div>
           <div class="gauge-label" style="margin-bottom:6px;">Post Engagement</div>
           <div class="mono" style="font-size:30px;font-weight:700;">
-            <input type="number" id="postEngagement" value="827" style="width:110px;font-size:30px;font-weight:700;">
+            <input type="number" id="postEngagement" value="0" style="width:130px;font-size:30px;font-weight:700;">
           </div>
-          <div class="hint" style="margin:6px 0 0;">Last 30 days · engagement by province</div>
+          <div class="hint" id="postEngagementSubline" style="margin:6px 0 0;">Campaign duration · engagement by location / province</div>
         </div>
       </div>
       <div class="age-list" id="locList">
-        <div class="age-row" style="grid-template-columns:150px 1fr 90px;">
-          <div class="age-name">Punjab</div>
+        <div class="age-row" style="grid-template-columns:160px 1fr 90px;">
+          <div class="age-name" id="locName0" contenteditable="true">Punjab</div>
           <div class="age-track"><div class="age-fill loc-fill" style="width:100%;"></div></div>
           <div class="age-spend"><input type="number" id="locPct0" class="locPctInput" value="54.5" step="0.1">%</div>
         </div>
-        <div class="age-row" style="grid-template-columns:150px 1fr 90px;">
-          <div class="age-name">Khyber Pakhtunkhwa</div>
+        <div class="age-row" style="grid-template-columns:160px 1fr 90px;">
+          <div class="age-name" id="locName1" contenteditable="true">Khyber Pakhtunkhwa</div>
           <div class="age-track"><div class="age-fill loc-fill" style="width:43%;"></div></div>
           <div class="age-spend"><input type="number" id="locPct1" class="locPctInput" value="23.7" step="0.1">%</div>
         </div>
-        <div class="age-row" style="grid-template-columns:150px 1fr 90px;">
-          <div class="age-name">Sindh</div>
+        <div class="age-row" style="grid-template-columns:160px 1fr 90px;">
+          <div class="age-name" id="locName2" contenteditable="true">Sindh</div>
           <div class="age-track"><div class="age-fill loc-fill" style="width:33%;"></div></div>
           <div class="age-spend"><input type="number" id="locPct2" class="locPctInput" value="18" step="0.1">%</div>
         </div>
-        <div class="age-row" style="grid-template-columns:150px 1fr 90px;">
-          <div class="age-name">Balochistan</div>
+        <div class="age-row" style="grid-template-columns:160px 1fr 90px;">
+          <div class="age-name" id="locName3" contenteditable="true">Balochistan</div>
           <div class="age-track"><div class="age-fill loc-fill" style="width:7%;"></div></div>
           <div class="age-spend"><input type="number" id="locPct3" class="locPctInput" value="3.7" step="0.1">%</div>
         </div>
@@ -640,7 +640,8 @@
   const TEXT_IDS = [
     'campaignName','campaignDesc','dateRange','agency','client',
     'reachTag','spendTag','cprTag',
-    'ageTag0','ageTag1','ageTag2','ageTag3'
+    'ageTag0','ageTag1','ageTag2','ageTag3',
+    'locName0','locName1','locName2','locName3'
   ];
 
   function collectState(){
@@ -702,6 +703,28 @@
     if(state.startDate && state.endDate){
       const el = $('dateRange');
       if(el) el.textContent = state.startDate + ' – ' + state.endDate;
+      const peSub = $('postEngagementSubline');
+      if(peSub) peSub.textContent = `${state.startDate} to ${state.endDate} · engagement by location`;
+      const gaSub = $('ga4Subline');
+      if(gaSub) gaSub.textContent = `Website Traffic · ${state.startDate} to ${state.endDate}`;
+    }
+    if(state._regionBreakdown && Array.isArray(state._regionBreakdown)){
+      state._regionBreakdown.slice(0, 4).forEach((reg, i) => {
+        const nameEl = $('locName' + i);
+        const pctEl = $('locPct' + i);
+        if(nameEl && reg.region) nameEl.textContent = reg.region;
+        if(pctEl && reg.pct !== undefined) pctEl.value = reg.pct;
+      });
+    }
+    for(let i=0; i<4; i++){
+      if(state['locName' + i]){
+        const nameEl = $('locName' + i);
+        if(nameEl) nameEl.textContent = state['locName' + i];
+      }
+      if(state['locPct' + i] !== undefined){
+        const pctEl = $('locPct' + i);
+        if(pctEl) pctEl.value = state['locPct' + i];
+      }
     }
     renderCreativeMedia(state.creativeMediaUrl, state.campaignName, state.campaignDesc);
     FIELD_IDS.forEach(id => { const el = $(id); if(el && state[id] !== undefined) el.value = state[id]; });

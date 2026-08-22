@@ -308,6 +308,20 @@ async function pullInsights({ accessToken, adAccountId, metaCampaignId, resultAc
   });
   Object.keys(ageBuckets).forEach((key) => (out[key] = +out[key].toFixed(2)));
 
+  // ---- Post Engagement from Meta Actions ----
+  if (overallRow.actions && Array.isArray(overallRow.actions)) {
+    const pe = overallRow.actions.find((a) => a.action_type === 'post_engagement' || a.action_type === 'page_engagement');
+    if (pe) {
+      out.postEngagement = Math.round(Number(pe.value || 0));
+    } else {
+      const engagementTypes = ['post_reaction', 'comment', 'post', 'like', 'link_click', 'video_view'];
+      const totalEng = overallRow.actions
+        .filter((a) => engagementTypes.includes(a.action_type))
+        .reduce((sum, a) => sum + Number(a.value || 0), 0);
+      if (totalEng > 0) out.postEngagement = Math.round(totalEng);
+    }
+  }
+
   // ---- Location breakdown ----
   const regionSpend = {};
   let totalRegionSpend = 0;
@@ -323,6 +337,14 @@ async function pullInsights({ accessToken, adAccountId, metaCampaignId, resultAc
       region,
       pct: totalRegionSpend ? +((spend / totalRegionSpend) * 100).toFixed(1) : 0,
     }));
+
+  // Auto-map top regions to locName0..3 and locPct0..3 for direct dashboard display
+  if (out._regionBreakdown && out._regionBreakdown.length > 0) {
+    out._regionBreakdown.slice(0, 4).forEach((reg, i) => {
+      out[`locName${i}`] = reg.region;
+      out[`locPct${i}`] = reg.pct;
+    });
+  }
 
   return out;
 }

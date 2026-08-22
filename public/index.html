@@ -94,9 +94,31 @@
   </div>
 
   <div class="card">
-    <h2>TikTok <span class="hint" style="font-weight:400;">(manual until API access is approved)</span></h2>
-    <label>TikTok Reach</label>
-    <input id="tkReach" type="number" placeholder="0">
+    <h2>Manual Overrides & Optional Channels</h2>
+    <div class="grid2">
+      <div>
+        <label>TikTok Reach</label>
+        <input id="tkReach" type="number" placeholder="0">
+      </div>
+      <div>
+        <label>Post Engagement Override <span class="hint">(Leave blank to auto-fetch from Meta)</span></label>
+        <input id="postEngagementInput" type="number" placeholder="Auto-calculated from Meta">
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:10px;">
+      <div>
+        <label>GA4 Website Sessions</label>
+        <input id="gaSessionsInput" type="number" placeholder="0">
+      </div>
+      <div>
+        <label>GA4 Website Users</label>
+        <input id="gaUsersInput" type="number" placeholder="0">
+      </div>
+    </div>
+    <div style="margin-top:10px;">
+      <label>GA4 Conversions</label>
+      <input id="gaConversionsInput" type="number" placeholder="0" style="max-width:200px;">
+    </div>
   </div>
 
   <div class="card">
@@ -190,7 +212,12 @@ async function loadStatus(){
     $('startDate').value = s.startDate || '';
     $('endDate').value = s.endDate || '';
     $('dateRangeDays').value = s.dateRangeDays ?? 30;
-    $('tkReach').value = (data.manualOverrides || {}).tkReach ?? '';
+    const mo = data.manualOverrides || {};
+    $('tkReach').value = mo.tkReach ?? '';
+    $('postEngagementInput').value = mo.postEngagement ?? (api.postEngagement ?? '');
+    $('gaSessionsInput').value = mo.gaSessions ?? (api.gaSessions ?? '');
+    $('gaUsersInput').value = mo.gaUsers ?? (api.gaUsers ?? '');
+    $('gaConversionsInput').value = mo.gaConversions ?? (api.gaConversions ?? '');
 
     if (s.startDate && s.endDate) updateDaysFromDates();
 
@@ -221,12 +248,17 @@ async function saveCurrentSettings(){
       dateRangeDays: Number($('dateRangeDays').value) || 30,
     }),
   });
-  const tk = $('tkReach').value;
-  if(tk !== ''){
+  const manual = {};
+  if ($('tkReach').value !== '') manual.tkReach = Number($('tkReach').value);
+  if ($('postEngagementInput').value !== '') manual.postEngagement = Number($('postEngagementInput').value);
+  if ($('gaSessionsInput').value !== '') manual.gaSessions = Number($('gaSessionsInput').value);
+  if ($('gaUsersInput').value !== '') manual.gaUsers = Number($('gaUsersInput').value);
+  if ($('gaConversionsInput').value !== '') manual.gaConversions = Number($('gaConversionsInput').value);
+  if (Object.keys(manual).length > 0) {
     await fetch('/api/manual', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ tkReach: Number(tk) }),
+      body: JSON.stringify(manual),
     });
   }
 }
