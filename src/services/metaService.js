@@ -95,12 +95,18 @@ async function fetchCampaignAndCreative({ accessToken, adAccountId, metaCampaign
       }
     }
 
-    // 3. If targetCreativeIds is empty, get latest ads from account
+    // 3. If targetCreativeIds is empty, get latest ads & adcreatives from account
     if (targetCreativeIds.length === 0) {
       const accountAds = await get(`${GRAPH}/${account}/ads`, { fields: 'id,name,status,creative', limit: 10 });
       if (accountAds && accountAds.data && accountAds.data.length > 0) {
         for (const a of accountAds.data) {
           if (a.creative && a.creative.id) targetCreativeIds.push(a.creative.id);
+        }
+      }
+      const directCreatives = await get(`${GRAPH}/${account}/adcreatives`, { fields: 'id', limit: 10 });
+      if (directCreatives && directCreatives.data && directCreatives.data.length > 0) {
+        for (const c of directCreatives.data) {
+          if (c.id && !targetCreativeIds.includes(c.id)) targetCreativeIds.push(c.id);
         }
       }
     }
@@ -113,6 +119,29 @@ async function fetchCampaignAndCreative({ accessToken, adAccountId, metaCampaign
       if (!cr) continue;
 
       if (!campaignDesc && (cr.body || cr.title)) campaignDesc = cr.body || cr.title;
+
+      // Check asset_feed_spec (for Advantage+ and Dynamic Creative Ads)
+      if (cr.asset_feed_spec) {
+        const afs = cr.asset_feed_spec;
+        if (afs.videos && Array.isArray(afs.videos) && afs.videos.length > 0) {
+          const vidObj = afs.videos[0];
+          if (vidObj.video_id) {
+            const v = await get(`${GRAPH}/${vidObj.video_id}`, { fields: 'id,source,picture,title,description' });
+            if (v) {
+              if (v.source) { creativeMediaUrl = v.source; break; }
+              if (v.picture && !creativeMediaUrl) creativeMediaUrl = v.picture;
+            }
+          }
+          if (!creativeMediaUrl && vidObj.thumbnail_url) creativeMediaUrl = vidObj.thumbnail_url;
+        }
+        if (!creativeMediaUrl && afs.images && Array.isArray(afs.images) && afs.images.length > 0) {
+          const imgObj = afs.images[0];
+          if (imgObj.url) creativeMediaUrl = imgObj.url;
+        }
+        if (!campaignDesc && afs.bodies && afs.bodies[0]?.text) {
+          campaignDesc = afs.bodies[0].text;
+        }
+      }
 
       // Check object_story_spec
       const spec = cr.object_story_spec || {};

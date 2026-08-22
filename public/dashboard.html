@@ -343,28 +343,40 @@
   <div class="section">
     <div class="section-head"><span class="num">03</span><h2>Age Demographic Highlights</h2><span class="rule"></span></div>
     <div class="split-panel age-list" id="ageList">
-      <div class="age-row" data-max="7000">
+      <div class="age-row">
         <div class="age-name">25–34 Years</div>
-        <div class="age-track"><div class="age-fill" style="width:97%;"></div></div>
-        <div class="age-spend">Rs <input type="number" id="ageSpend0" class="ageSpendInput" value="6800"></div>
+        <div class="age-track"><div class="age-fill" style="width:46.8%;"></div></div>
+        <div class="age-spend" style="display:flex;align-items:center;gap:6px;min-width:145px;">
+          <span id="agePct0" style="font-weight:700;color:var(--ink);">46.8%</span>
+          <span style="font-size:11.5px;color:var(--ink-dim);">(Rs <input type="number" id="ageSpend0" class="ageSpendInput" value="34812" style="width:75px;display:inline-block;font-size:11.5px;padding:0;">)</span>
+        </div>
         <div class="age-tag" id="ageTag0" contenteditable="true">Primary Core</div>
       </div>
-      <div class="age-row" data-max="7000">
+      <div class="age-row">
         <div class="age-name">35–44 Years</div>
-        <div class="age-track"><div class="age-fill" style="width:66%;"></div></div>
-        <div class="age-spend">Rs <input type="number" id="ageSpend1" class="ageSpendInput" value="4600"></div>
+        <div class="age-track"><div class="age-fill" style="width:39.4%;"></div></div>
+        <div class="age-spend" style="display:flex;align-items:center;gap:6px;min-width:145px;">
+          <span id="agePct1" style="font-weight:700;color:var(--ink);">39.4%</span>
+          <span style="font-size:11.5px;color:var(--ink-dim);">(Rs <input type="number" id="ageSpend1" class="ageSpendInput" value="29327" style="width:75px;display:inline-block;font-size:11.5px;padding:0;">)</span>
+        </div>
         <div class="age-tag" id="ageTag1" contenteditable="true">Secondary</div>
       </div>
-      <div class="age-row" data-max="7000">
+      <div class="age-row">
         <div class="age-name">45–54 Years</div>
-        <div class="age-track"><div class="age-fill" style="width:34%;"></div></div>
-        <div class="age-spend">Rs <input type="number" id="ageSpend2" class="ageSpendInput" value="2400"></div>
+        <div class="age-track"><div class="age-fill" style="width:13.6%;"></div></div>
+        <div class="age-spend" style="display:flex;align-items:center;gap:6px;min-width:145px;">
+          <span id="agePct2" style="font-weight:700;color:var(--ink);">13.6%</span>
+          <span style="font-size:11.5px;color:var(--ink-dim);">(Rs <input type="number" id="ageSpend2" class="ageSpendInput" value="10120" style="width:75px;display:inline-block;font-size:11.5px;padding:0;">)</span>
+        </div>
         <div class="age-tag" id="ageTag2" contenteditable="true">Moderate</div>
       </div>
-      <div class="age-row" data-max="7000">
+      <div class="age-row">
         <div class="age-name">55–64 &amp; 65+</div>
-        <div class="age-track"><div class="age-fill" style="width:13%;"></div></div>
-        <div class="age-spend">Rs <input type="number" id="ageSpend3" class="ageSpendInput" value="950"></div>
+        <div class="age-track"><div class="age-fill" style="width:0.7%;"></div></div>
+        <div class="age-spend" style="display:flex;align-items:center;gap:6px;min-width:145px;">
+          <span id="agePct3" style="font-weight:700;color:var(--ink);">0.7%</span>
+          <span style="font-size:11.5px;color:var(--ink-dim);">(Rs <input type="number" id="ageSpend3" class="ageSpendInput" value="530" style="width:75px;display:inline-block;font-size:11.5px;padding:0;">)</span>
+        </div>
         <div class="age-tag" id="ageTag3" contenteditable="true">Niche Reach</div>
       </div>
     </div>
@@ -577,10 +589,14 @@
     const rows = document.querySelectorAll('#ageList .age-row');
     let vals = [];
     rows.forEach(r => vals.push(parseFloat(r.querySelector('.ageSpendInput').value)||0));
+    const total = vals.reduce((a, b) => a + b, 0);
     const max = Math.max(...vals, 1);
     rows.forEach((r,i) => {
       const fill = r.querySelector('.age-fill');
+      const pct = total > 0 ? (vals[i] / total * 100) : 0;
       fill.style.width = Math.max((vals[i]/max*100),3) + '%';
+      const pctEl = $('agePct' + i);
+      if(pctEl) pctEl.textContent = fmt(pct, 1) + '%';
     });
   }
 
