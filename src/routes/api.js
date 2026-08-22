@@ -1,7 +1,7 @@
 const express = require('express');
 const store = require('../store');
 const scheduler = require('../scheduler');
-const { createDataCookie, getUserIdFromRequest } = require('../sessionHelper');
+const { createSessionCookie, createDataCookie, getUserIdFromRequest } = require('../sessionHelper');
 
 const router = express.Router();
 router.use(express.json());
@@ -36,7 +36,10 @@ router.post('/settings', (req, res) => {
   const userId = getUserIdFromRequest(req);
   const updated = { ...store.getSettings(userId, req), ...req.body };
   store.saveSettings(userId, updated);
-  res.setHeader('Set-Cookie', createDataCookie('camp_settings', updated));
+  res.setHeader('Set-Cookie', [
+    createSessionCookie(userId),
+    createDataCookie('camp_settings', updated)
+  ]);
   res.json({ ok: true, settings: updated });
 });
 
@@ -50,9 +53,11 @@ router.post('/refresh', async (req, res) => {
   const userId = getUserIdFromRequest(req);
   try {
     const { results, errors } = await scheduler.runSyncForUser(userId, req);
+    const cookieHeaders = [createSessionCookie(userId)];
     if (results && Object.keys(results).length > 0) {
-      res.setHeader('Set-Cookie', createDataCookie('camp_data', results));
+      cookieHeaders.push(createDataCookie('camp_data', results));
     }
+    res.setHeader('Set-Cookie', cookieHeaders);
     res.json({ ok: true, results, errors });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
