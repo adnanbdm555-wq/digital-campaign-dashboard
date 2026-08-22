@@ -549,9 +549,22 @@
   function updateGender(){
     const menReach = parseFloat($('menReach').value)||0;
     const womenReach = parseFloat($('womenReach').value)||0;
-    const total = menReach + womenReach;
-    const menPct = total ? (menReach/total*100) : 0;
-    const womenPct = total ? (womenReach/total*100) : 0;
+    const menSpend = parseFloat($('menSpend')?.value)||0;
+    const womenSpend = parseFloat($('womenSpend')?.value)||0;
+
+    let menPct = 0, womenPct = 0;
+    const totalReach = menReach + womenReach;
+    if(totalReach > 0){
+      menPct = (menReach / totalReach * 100);
+      womenPct = (womenReach / totalReach * 100);
+    } else {
+      const totalSpend = menSpend + womenSpend;
+      if(totalSpend > 0){
+        menPct = (menSpend / totalSpend * 100);
+        womenPct = (womenSpend / totalSpend * 100);
+      }
+    }
+
     $('menShare').textContent = fmt(menPct,1) + '%';
     $('womenShare').textContent = fmt(womenPct,1) + '%';
     $('segMen').style.width = Math.max(menPct,6) + '%';
@@ -620,8 +633,8 @@
     updateLocations();
   }
 
-  ['reach','spend','cpr','reachMax','spendMax','cprMax'].forEach(id => $(id).addEventListener('input', updateKPIGauges));
-  ['menReach','womenReach'].forEach(id => $(id).addEventListener('input', updateGender));
+  ['reach','spend','cpr','reachMax','spendMax','cprMax'].forEach(id => $(id)?.addEventListener('input', updateKPIGauges));
+  ['menReach','womenReach','menSpend','womenSpend'].forEach(id => $(id)?.addEventListener('input', updateGender));
   document.querySelectorAll('.ageSpendInput').forEach(el => el.addEventListener('input', updateAge));
   document.querySelectorAll('.platReach').forEach(el => el.addEventListener('input', updatePlatforms));
   document.querySelectorAll('.locPctInput').forEach(el => el.addEventListener('input', updateLocations));

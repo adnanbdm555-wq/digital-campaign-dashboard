@@ -219,9 +219,9 @@ async function pullInsights({ accessToken, adAccountId, metaCampaignId, resultAc
   }
 
   const [byPlatform, byAgeGender, byRegion, metaCreative] = await Promise.all([
-    safeGet(targetId, { fields: 'reach', breakdowns: 'publisher_platform' }),
-    safeGet(targetId, { fields: 'reach,spend', breakdowns: 'age,gender' }),
-    safeGet(targetId, { fields: 'spend', breakdowns: 'region' }),
+    safeGet(targetId, { fields: 'reach,impressions,spend', breakdowns: 'publisher_platform' }),
+    safeGet(targetId, { fields: 'reach,impressions,spend', breakdowns: 'age,gender' }),
+    safeGet(targetId, { fields: 'reach,impressions,spend', breakdowns: 'region' }),
     fetchCampaignAndCreative({ accessToken, adAccountId, metaCampaignId }),
   ]);
 
@@ -234,7 +234,7 @@ async function pullInsights({ accessToken, adAccountId, metaCampaignId, resultAc
 
   // ---- Overall reach / spend / cost-per-result ----
   const overallRow = (overall.data || [])[0] || {};
-  out.reach = Math.round(Number(overallRow.reach || 0));
+  out.reach = Math.round(Number(overallRow.reach || overallRow.impressions || 0));
   out.spend = +Number(overallRow.spend || 0).toFixed(2);
 
   if (resultActionType && overallRow.actions) {
@@ -246,19 +246,38 @@ async function pullInsights({ accessToken, adAccountId, metaCampaignId, resultAc
   }
 
   // ---- Platform breakdown — feeds the donut directly ----
-  const platformMap = { facebook: 'fbReach', instagram: 'igReach', messenger: 'msReach' };
+  const platformMap = { facebook: 'fbReach', instagram: 'igReach', messenger: 'msReach', audience_network: 'msReach' };
   (byPlatform.data || []).forEach((row) => {
     const key = platformMap[row.publisher_platform];
-    if (key) out[key] = Math.round(Number(row.reach || 0));
+    if (key) {
+      const val = Math.round(Number(row.reach || row.impressions || 0));
+      out[key] = (out[key] || 0) + val;
+    }
   });
 
   // ---- Gender totals ----
-  let menReach = 0, womenReach = 0, menSpend = 0, womenSpend = 0;
+  let menReach = 0, womenReach = 0, menSpend = 0, womenSpend = 0, menImp = 0, womenImp = 0;
   (byAgeGender.data || []).forEach((row) => {
-    const reach = Number(row.reach || 0), spend = Number(row.spend || 0);
-    if (row.gender === 'male') { menReach += reach; menSpend += spend; }
-    if (row.gender === 'female') { womenReach += reach; womenSpend += spend; }
+    const reach = Number(row.reach || 0);
+    const imp = Number(row.impressions || 0);
+    const spend = Number(row.spend || 0);
+    if (row.gender === 'male') { menReach += reach; menSpend += spend; menImp += imp; }
+    if (row.gender === 'female') { womenReach += reach; womenSpend += spend; womenImp += imp; }
   });
+
+  // If Meta omitted reach in demographic breakdown (Meta API v18+), apportion overall reach by gender spend/impressions
+  const totalGenderSpend = menSpend + womenSpend;
+  const totalGenderImp = menImp + womenImp;
+  if (menReach === 0 && womenReach === 0 && out.reach > 0) {
+    if (totalGenderImp > 0) {
+      menReach = Math.round(out.reach * (menImp / totalGenderImp));
+      womenReach = Math.round(out.reach * (womenImp / totalGenderImp));
+    } else if (totalGenderSpend > 0) {
+      menReach = Math.round(out.reach * (menSpend / totalGenderSpend));
+      womenReach = Math.round(out.reach * (womenSpend / totalGenderSpend));
+    }
+  }
+
   out.menReach = Math.round(menReach);
   out.womenReach = Math.round(womenReach);
   out.menSpend = +menSpend.toFixed(2);
