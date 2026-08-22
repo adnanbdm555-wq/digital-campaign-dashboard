@@ -25,11 +25,12 @@ async function runSyncForUser(userId, req) {
   const results = {};
   const errors = [];
 
-  if (tokens.meta && settings.metaAdAccountId) {
+  if (tokens.meta && (settings.metaAdAccountId || settings.metaCampaignId)) {
     try {
       Object.assign(results, await metaService.pullInsights({
         accessToken: tokens.meta.accessToken,
-        adAccountId: settings.metaAdAccountId,
+        adAccountId: settings.metaAdAccountId || '',
+        metaCampaignId: settings.metaCampaignId || '',
         resultActionType: settings.metaResultActionType,
         since,
         until,
@@ -39,7 +40,7 @@ async function runSyncForUser(userId, req) {
     }
   } else {
     if (!tokens.meta) errors.push('Meta: Facebook account not connected yet. Please click Connect Meta first.');
-    if (!settings.metaAdAccountId) errors.push('Meta: Ad Account ID missing. Please enter your Meta Ad Account ID (e.g. 911899473972829).');
+    if (!settings.metaAdAccountId && !settings.metaCampaignId) errors.push('Meta: Please enter your Meta Ad Account ID or Campaign ID.');
   }
 
   if (tokens.google?.refresh_token && settings.ga4PropertyId) {

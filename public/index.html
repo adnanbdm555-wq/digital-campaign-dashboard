@@ -50,8 +50,16 @@
       <span id="metaStatusText" style="font-size:13px;color:var(--ink-dim);">Not connected</span>
       <a class="btn" href="/auth/meta">Connect Facebook & Instagram</a>
     </div>
-    <label>Ad Account ID <span class="hint">(numbers only, or with the act_ prefix)</span></label>
-    <input id="metaAdAccountId" placeholder="1234567890">
+    <div class="grid2">
+      <div>
+        <label>Ad Account ID <span class="hint">(e.g. 911899473972829)</span></label>
+        <input id="metaAdAccountId" placeholder="911899473972829">
+      </div>
+      <div>
+        <label>Campaign ID / Ad ID <span class="hint">(Optional — to sync a specific campaign)</span></label>
+        <input id="metaCampaignId" placeholder="e.g. 120214366924970101">
+      </div>
+    </div>
     <label>Result action type <span class="hint">(optional — e.g. lead, purchase, link_click. Leave blank to use a CPM-style proxy for Cost Per Result)</span></label>
     <input id="metaResultActionType" placeholder="link_click">
   </div>
@@ -171,6 +179,7 @@ async function loadStatus(){
     const s = data.settings || {};
     const api = data.apiData || {};
     $('metaAdAccountId').value = s.metaAdAccountId || '';
+    $('metaCampaignId').value = s.metaCampaignId || '';
     $('metaResultActionType').value = s.metaResultActionType || '';
     $('youtubeChannelId').value = s.youtubeChannelId || 'MINE';
     $('ga4PropertyId').value = s.ga4PropertyId || '';
@@ -199,6 +208,7 @@ async function saveCurrentSettings(){
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({
       metaAdAccountId: $('metaAdAccountId').value.trim(),
+      metaCampaignId: $('metaCampaignId').value.trim(),
       metaResultActionType: $('metaResultActionType').value.trim(),
       youtubeChannelId: $('youtubeChannelId').value.trim() || 'MINE',
       ga4PropertyId: $('ga4PropertyId').value.trim(),
