@@ -49,209 +49,144 @@ async function fetchCampaignAndCreative({ accessToken, adAccountId, metaCampaign
   let campaignDesc = '';
   let creativeMediaUrl = '';
 
-  try {
-    let targetAds = [];
+  const get = async (url, params = {}) => {
+    try {
+      const res = await axios.get(url, { params: { access_token: accessToken, ...params } });
+      return res.data;
+    } catch (e) {
+      return null;
+    }
+  };
 
+  try {
+    let targetCreativeIds = [];
+
+    // 1. If metaCampaignId is provided
     if (metaCampaignId && metaCampaignId.trim()) {
       const id = metaCampaignId.trim();
-      // Try to fetch as direct Ad or Campaign
-      try {
-        const itemRes = await axios.get(`${GRAPH}/${id}`, {
-          params: {
-            access_token: accessToken,
-            fields: 'id,name,objective,status,campaign{id,name},creative{id,name,title,body,image_url,thumbnail_url,video_id,object_story_spec}',
-          },
-        });
-        const item = itemRes.data;
-        if (item.campaign?.name) campaignName = item.campaign.name;
-        else if (item.name) campaignName = item.name;
 
-        if (item.creative) {
-          targetAds = [{ name: item.name, creative: item.creative }];
+      // Try reading as a Campaign / AdSet / Ad node
+      const node = await get(`${GRAPH}/${id}`, { fields: 'id,name,objective,status' });
+      if (node && node.name) campaignName = node.name;
+
+      // Try fetching ads from this node (works for Campaign, AdSet)
+      const nodeAds = await get(`${GRAPH}/${id}/ads`, { fields: 'id,name,status,creative', limit: 10 });
+      if (nodeAds && nodeAds.data && nodeAds.data.length > 0) {
+        for (const a of nodeAds.data) {
+          if (!campaignDesc && a.name) campaignDesc = a.name;
+          if (a.creative && a.creative.id) targetCreativeIds.push(a.creative.id);
         }
-      } catch (e) {
-        console.warn('Direct item fetch info:', e.response?.data?.error?.message || e.message);
       }
 
-      if (targetAds.length === 0) {
-        // Try to fetch ads belonging to this campaign
-        try {
-          const campAdsRes = await axios.get(`${GRAPH}/${id}/ads`, {
-            params: {
-              access_token: accessToken,
-              fields: 'id,name,status,creative{id,name,title,body,image_url,thumbnail_url,video_id,object_story_spec}',
-              limit: 10,
-            },
-          });
-          targetAds = campAdsRes.data.data || [];
-        } catch (e) {}
+      // If id was directly an Ad node
+      const adDirect = await get(`${GRAPH}/${id}`, { fields: 'id,name,creative' });
+      if (adDirect && adDirect.creative && adDirect.creative.id) {
+        targetCreativeIds.push(adDirect.creative.id);
+        if (!campaignDesc && adDirect.name) campaignDesc = adDirect.name;
       }
     }
 
-    // If still no campaignName or targetAds, query account campaigns/ads
+    // 2. If no campaignName found yet, get active account campaign
     if (!campaignName) {
-      try {
-        const campRes = await axios.get(`${GRAPH}/${account}/campaigns`, {
-          params: {
-            access_token: accessToken,
-            fields: 'id,name,objective,status,created_time,start_time,stop_time',
-            limit: 10,
-          },
-        });
-        const campaigns = campRes.data.data || [];
-        if (campaigns.length > 0) {
-          const activeCamp = campaigns.find((c) => c.status === 'ACTIVE') || campaigns[0];
-          campaignName = activeCamp.name || '';
+      const camps = await get(`${GRAPH}/${account}/campaigns`, { fields: 'id,name,status', limit: 10 });
+      if (camps && camps.data && camps.data.length > 0) {
+        const active = camps.data.find((c) => c.status === 'ACTIVE') || camps.data[0];
+        campaignName = active.name || '';
+      }
+    }
+
+    // 3. If targetCreativeIds is empty, get latest ads from account
+    if (targetCreativeIds.length === 0) {
+      const accountAds = await get(`${GRAPH}/${account}/ads`, { fields: 'id,name,status,creative', limit: 10 });
+      if (accountAds && accountAds.data && accountAds.data.length > 0) {
+        for (const a of accountAds.data) {
+          if (a.creative && a.creative.id) targetCreativeIds.push(a.creative.id);
         }
-      } catch (e) {}
+      }
     }
 
-    if (targetAds.length === 0) {
-      try {
-        const adsRes = await axios.get(`${GRAPH}/${account}/ads`, {
-          params: {
-            access_token: accessToken,
-            fields: 'id,name,status,creative{id,name,title,body,image_url,thumbnail_url,video_id,object_story_spec}',
-            limit: 10,
-          },
-        });
-        targetAds = adsRes.data.data || [];
-      } catch (e) {}
-    }
+    // 4. Inspect creative IDs to extract Video source, thumbnail, or image URL
+    for (const crId of targetCreativeIds) {
+      const cr = await get(`${GRAPH}/${crId}`, {
+        fields: 'id,name,title,body,image_url,thumbnail_url,video_id,object_story_spec,effective_object_story_id,asset_feed_spec',
+      });
+      if (!cr) continue;
 
-    if (targetAds.length > 0) {
-      const activeAd = targetAds.find((a) => a.status === 'ACTIVE') || targetAds[0];
-      const creative = activeAd.creative || {};
+      if (!campaignDesc && (cr.body || cr.title)) campaignDesc = cr.body || cr.title;
 
-      campaignDesc = creative.body || creative.title || '';
-
-      const spec = creative.object_story_spec || {};
+      // Check object_story_spec
+      const spec = cr.object_story_spec || {};
       if (spec.video_data) {
         if (!campaignDesc && spec.video_data.message) campaignDesc = spec.video_data.message;
         if (!campaignDesc && spec.video_data.title) campaignDesc = spec.video_data.title;
-        if (spec.video_data.image_url) creativeMediaUrl = spec.video_data.image_url;
+        if (spec.video_data.image_url && !creativeMediaUrl) creativeMediaUrl = spec.video_data.image_url;
         if (spec.video_data.video_id) {
-          try {
-            const vidRes = await axios.get(`${GRAPH}/${spec.video_data.video_id}`, {
-              params: {
-                access_token: accessToken,
-                fields: 'id,source,picture,title,description',
-              },
-            });
-            if (vidRes.data.source) {
-              creativeMediaUrl = vidRes.data.source;
-            } else if (vidRes.data.picture && !creativeMediaUrl) {
-              creativeMediaUrl = vidRes.data.picture;
-            }
-            if (!campaignDesc && vidRes.data.description) {
-              campaignDesc = vidRes.data.description;
-            }
-          } catch (e) {
-            console.warn('Video fetch warning:', e.message);
+          const v = await get(`${GRAPH}/${spec.video_data.video_id}`, { fields: 'id,source,picture,title,description' });
+          if (v) {
+            if (v.source) { creativeMediaUrl = v.source; break; }
+            if (v.picture && !creativeMediaUrl) creativeMediaUrl = v.picture;
           }
         }
-      } else if (spec.link_data) {
+      }
+      if (spec.link_data) {
         if (!campaignDesc && spec.link_data.message) campaignDesc = spec.link_data.message;
         if (!campaignDesc && spec.link_data.name) campaignDesc = spec.link_data.name;
         if (!campaignDesc && spec.link_data.description) campaignDesc = spec.link_data.description;
-        if (spec.link_data.picture) creativeMediaUrl = spec.link_data.picture;
+        if (spec.link_data.picture && !creativeMediaUrl) creativeMediaUrl = spec.link_data.picture;
       }
 
-      if (!creativeMediaUrl && (creative.image_url || creative.thumbnail_url)) {
-        creativeMediaUrl = creative.image_url || creative.thumbnail_url;
-      }
-
-      if (!creativeMediaUrl && creative.effective_object_story_id) {
-        try {
-          const postRes = await axios.get(`${GRAPH}/${creative.effective_object_story_id}`, {
-            params: {
-              access_token: accessToken,
-              fields: 'id,message,full_picture,source,attachments{media,media_type,unshimmed_url,url,subattachments}',
-            },
-          });
-          if (postRes.data.source) {
-            creativeMediaUrl = postRes.data.source;
-          } else if (postRes.data.full_picture) {
-            creativeMediaUrl = postRes.data.full_picture;
-          }
-          if (!campaignDesc && postRes.data.message) {
-            campaignDesc = postRes.data.message;
-          }
-        } catch (e) {}
-      }
-
-      if (!campaignDesc) {
-        campaignDesc = activeAd.name || campaignName || '';
-      }
-    }
-
-    // Direct adcreatives fallback if still no creative media found
-    if (!creativeMediaUrl) {
-      try {
-        const creativesRes = await axios.get(`${GRAPH}/${account}/adcreatives`, {
-          params: {
-            access_token: accessToken,
-            fields: 'id,name,title,body,image_url,thumbnail_url,video_id,object_story_spec,effective_object_story_id',
-            limit: 5,
-          },
-        });
-        const list = creativesRes.data.data || [];
-        for (const cr of list) {
-          if (cr.video_id) {
-            try {
-              const vid = await axios.get(`${GRAPH}/${cr.video_id}`, {
-                params: { access_token: accessToken, fields: 'id,source,picture' },
-              });
-              if (vid.data.source) { creativeMediaUrl = vid.data.source; break; }
-              if (vid.data.picture && !creativeMediaUrl) creativeMediaUrl = vid.data.picture;
-            } catch (e) {}
-          }
-          if (!creativeMediaUrl && (cr.image_url || cr.thumbnail_url)) {
-            creativeMediaUrl = cr.image_url || cr.thumbnail_url;
-          }
-          if (creativeMediaUrl) break;
+      // Check direct video_id on creative
+      if (cr.video_id) {
+        const v = await get(`${GRAPH}/${cr.video_id}`, { fields: 'id,source,picture,title,description' });
+        if (v) {
+          if (v.source) { creativeMediaUrl = v.source; break; }
+          if (v.picture && !creativeMediaUrl) creativeMediaUrl = v.picture;
         }
-      } catch (e) {}
+      }
+
+      // Check effective_object_story_id (Facebook Page Post)
+      if (cr.effective_object_story_id) {
+        const post = await get(`${GRAPH}/${cr.effective_object_story_id}`, {
+          fields: 'id,message,full_picture,source,attachments{media,media_type,unshimmed_url,url,subattachments}',
+        });
+        if (post) {
+          if (post.source) { creativeMediaUrl = post.source; break; }
+          if (post.full_picture && !creativeMediaUrl) creativeMediaUrl = post.full_picture;
+          if (!campaignDesc && post.message) campaignDesc = post.message;
+        }
+      }
+
+      if (!creativeMediaUrl && (cr.image_url || cr.thumbnail_url)) {
+        creativeMediaUrl = cr.image_url || cr.thumbnail_url;
+      }
+
+      if (creativeMediaUrl) break;
     }
 
-    // Ad account videos fallback
+    // 5. Fallback: Query ad account's videos directly
     if (!creativeMediaUrl) {
-      try {
-        const vidsRes = await axios.get(`${GRAPH}/${account}/advideos`, {
-          params: {
-            access_token: accessToken,
-            fields: 'id,source,picture,title,description,created_time',
-            limit: 5,
-          },
-        });
-        const vids = vidsRes.data.data || [];
-        for (const v of vids) {
+      const vids = await get(`${GRAPH}/${account}/advideos`, { fields: 'id,source,picture,title,description,created_time', limit: 5 });
+      if (vids && vids.data && vids.data.length > 0) {
+        for (const v of vids.data) {
           if (v.source) { creativeMediaUrl = v.source; break; }
           if (v.picture && !creativeMediaUrl) creativeMediaUrl = v.picture;
           if (!campaignDesc && v.description) campaignDesc = v.description;
         }
-      } catch (e) {}
+      }
     }
 
-    // Ad account images fallback
+    // 6. Fallback: Query ad account's images directly
     if (!creativeMediaUrl) {
-      try {
-        const imgsRes = await axios.get(`${GRAPH}/${account}/adimages`, {
-          params: {
-            access_token: accessToken,
-            fields: 'id,url,permalink_url,created_time',
-            limit: 5,
-          },
-        });
-        const imgs = imgsRes.data.data || [];
-        for (const img of imgs) {
+      const imgs = await get(`${GRAPH}/${account}/adimages`, { fields: 'id,url,permalink_url', limit: 5 });
+      if (imgs && imgs.data && imgs.data.length > 0) {
+        for (const img of imgs.data) {
           if (img.url) { creativeMediaUrl = img.url; break; }
           if (img.permalink_url && !creativeMediaUrl) creativeMediaUrl = img.permalink_url;
         }
-      } catch (e) {}
+      }
     }
   } catch (err) {
-    console.warn('Could not auto-fetch campaign creative:', err.response?.data?.error?.message || err.message);
+    console.warn('Could not auto-fetch campaign creative:', err.message);
   }
 
   return { campaignName, campaignDesc, creativeMediaUrl };
