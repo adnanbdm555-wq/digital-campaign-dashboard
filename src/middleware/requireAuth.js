@@ -1,3 +1,5 @@
+const { getUserIdFromRequest } = require('../sessionHelper');
+
 /**
  * Guards a route behind login. Page requests bounce to /login.html;
  * API requests (anything under /api) get a 401 JSON response instead,
@@ -5,7 +7,11 @@
  * without following a redirect into an HTML page.
  */
 function requireAuth(req, res, next) {
-  if (req.session && req.session.userId) return next();
+  const userId = getUserIdFromRequest(req);
+  if (userId) {
+    req.session.userId = userId;
+    return next();
+  }
   if (req.originalUrl.startsWith('/api')) {
     return res.status(401).json({ error: 'Not logged in' });
   }

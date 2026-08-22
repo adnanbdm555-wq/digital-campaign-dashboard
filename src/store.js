@@ -146,6 +146,9 @@ const store = {
     dateRangeDays: 30,
     startDate: '',
     endDate: '',
+    campaignName: '',
+    campaignDesc: '',
+    creativeMediaUrl: '',
   }),
   saveSettings: (userId, settings) => writeJson(fileFor(userId, 'settings'), settings),
 
@@ -160,10 +163,18 @@ const store = {
 
   // What each user's dashboard actually fetches — their own automated
   // pulls, with their own manually-entered fields layered on top.
-  getCampaignData: (userId) => ({
-    ...store.getApiData(userId),
-    ...store.getManualOverrides(userId),
-  }),
+  getCampaignData: (userId) => {
+    const settings = store.getSettings(userId);
+    return {
+      campaignName: settings.campaignName || '',
+      campaignDesc: settings.campaignDesc || '',
+      creativeMediaUrl: settings.creativeMediaUrl || '',
+      startDate: settings.startDate || '',
+      endDate: settings.endDate || '',
+      ...store.getApiData(userId),
+      ...store.getManualOverrides(userId),
+    };
+  },
 };
 
 module.exports = store;

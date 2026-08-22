@@ -50,11 +50,21 @@ async function pullInsights({ accessToken, adAccountId, resultActionType, since,
   const account = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`;
   const base = { access_token: accessToken, time_range: timeRange };
 
-  const [overall, byPlatform, byAgeGender, byRegion] = await Promise.all([
-    axios.get(`${GRAPH}/${account}/insights`, { params: { ...base, fields: 'reach,spend,actions' } }),
-    axios.get(`${GRAPH}/${account}/insights`, { params: { ...base, fields: 'reach', breakdowns: 'publisher_platform' } }),
-    axios.get(`${GRAPH}/${account}/insights`, { params: { ...base, fields: 'reach,spend', breakdowns: 'age,gender' } }),
-    axios.get(`${GRAPH}/${account}/insights`, { params: { ...base, fields: 'spend', breakdowns: 'region' } }),
+  async function safeGet(params) {
+    try {
+      const res = await axios.get(`${GRAPH}/${account}/insights`, { params: { ...base, ...params } });
+      return res.data;
+    } catch (e) {
+      console.warn('Meta insights subquery warning:', e.response?.data?.error?.message || e.message);
+      return { data: [] };
+    }
+  }
+
+  const overall = await axios.get(`${GRAPH}/${account}/insights`, { params: { ...base, fields: 'reach,spend,actions,impressions,clicks,cpm' } });
+  const [byPlatform, byAgeGender, byRegion] = await Promise.all([
+    safeGet({ fields: 'reach', breakdowns: 'publisher_platform' }),
+    safeGet({ fields: 'reach,spend', breakdowns: 'age,gender' }),
+    safeGet({ fields: 'spend', breakdowns: 'region' }),
   ]);
 
   const out = {};

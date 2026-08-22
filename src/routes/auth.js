@@ -19,6 +19,8 @@ router.get('/signup-status', (req, res) => {
   res.json({ open: store.getUsers().length === 0 });
 });
 
+const { createSessionCookie, clearSessionCookie } = require('../sessionHelper');
+
 router.post('/signup', async (req, res) => {
   const { username, password, displayName } = req.body || {};
   if (!username || !password || String(password).length < 6) {
@@ -31,7 +33,8 @@ router.post('/signup', async (req, res) => {
   }
   const passwordHash = await bcrypt.hash(password, 10);
   const user = store.createUser({ username: username.trim(), passwordHash, displayName, role: 'admin' });
-  req.session.userId = user.id;
+  if (req.session) req.session.userId = user.id;
+  res.setHeader('Set-Cookie', createSessionCookie(user.id));
   res.json({ ok: true });
 });
 
@@ -42,12 +45,18 @@ router.post('/login', async (req, res) => {
   if (!ok) {
     return res.status(401).json({ error: 'Wrong username or password.' });
   }
-  req.session.userId = user.id;
+  if (req.session) req.session.userId = user.id;
+  res.setHeader('Set-Cookie', createSessionCookie(user.id));
   res.json({ ok: true });
 });
 
 router.post('/logout', (req, res) => {
-  req.session.destroy(() => res.json({ ok: true }));
+  res.setHeader('Set-Cookie', clearSessionCookie());
+  if (req.session) {
+    req.session.destroy(() => res.json({ ok: true }));
+  } else {
+    res.json({ ok: true });
+  }
 });
 
 function getRedirectUri(req, callbackPath) {

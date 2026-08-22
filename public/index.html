@@ -92,6 +92,16 @@
   </div>
 
   <div class="card">
+    <h2>Campaign Information & Media</h2>
+    <label>Campaign Name</label>
+    <input id="campaignNameInput" placeholder="e.g. GFS Premium Block 80 & 120 Sq. yards">
+    <label>Campaign Description</label>
+    <input id="campaignDescInput" placeholder="e.g. GFS Premium Video Leads Campaign Performance Analytics">
+    <label>Campaign Creative / Video URL <span class="hint">(MP4, WebM, YouTube, or Image URL for the hero section)</span></label>
+    <input id="creativeMediaUrlInput" placeholder="https://.../video.mp4 or YouTube URL or image link">
+  </div>
+
+  <div class="card">
     <h2>Date Range Selection</h2>
     <div class="grid2">
       <div>
@@ -103,7 +113,7 @@
         <input id="endDate" type="date">
       </div>
     </div>
-    <label style="margin-top:14px;">Or Days back from today (if dates left empty)</label>
+    <label style="margin-top:14px;">Total Days <span class="hint">(Auto-calculated from dates, or enter days to auto-fill dates)</span></label>
     <input id="dateRangeDays" type="number" placeholder="30" style="max-width:140px;">
     <div class="row" style="margin-top:16px;">
       <button class="btn" id="saveBtn">Save Settings</button>
@@ -119,6 +129,32 @@
 
 <script>
 const $ = id => document.getElementById(id);
+
+function updateDaysFromDates() {
+  const start = $('startDate').value;
+  const end = $('endDate').value;
+  if (start && end) {
+    const s = new Date(start);
+    const e = new Date(end);
+    const diff = Math.ceil((e - s) / (1000 * 60 * 60 * 24)) + 1;
+    if (diff > 0) $('dateRangeDays').value = diff;
+  }
+}
+
+function updateDatesFromDays() {
+  const days = Number($('dateRangeDays').value);
+  if (days && days > 0) {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - days);
+    $('endDate').value = end.toISOString().slice(0, 10);
+    $('startDate').value = start.toISOString().slice(0, 10);
+  }
+}
+
+$('startDate').addEventListener('change', updateDaysFromDates);
+$('endDate').addEventListener('change', updateDaysFromDates);
+$('dateRangeDays').addEventListener('input', updateDatesFromDays);
 
 async function loadStatus(){
   try{
@@ -138,14 +174,19 @@ async function loadStatus(){
     $('youtubeChannelId').value = s.youtubeChannelId || 'MINE';
     $('ga4PropertyId').value = s.ga4PropertyId || '';
     $('linkedinAdAccountId').value = s.linkedinAdAccountId || '';
+    $('campaignNameInput').value = s.campaignName || '';
+    $('campaignDescInput').value = s.campaignDesc || '';
+    $('creativeMediaUrlInput').value = s.creativeMediaUrl || '';
     $('startDate').value = s.startDate || '';
     $('endDate').value = s.endDate || '';
     $('dateRangeDays').value = s.dateRangeDays ?? 30;
     $('tkReach').value = (data.manualOverrides || {}).tkReach ?? '';
 
+    if (s.startDate && s.endDate) updateDaysFromDates();
+
     $('statusMsg').textContent = data.lastSync
       ? `Last synced ${new Date(data.lastSync).toLocaleString()}${data.lastError ? ' — issues: ' + data.lastError : ''}`
-      : 'Never synced yet. (Click "Save Settings" then "Sync Now")';
+      : 'Never synced yet. (Select dates, click "Save Settings" then "Sync Now")';
   }catch(e){
     $('statusMsg').textContent = 'Could not reach the backend — is the server running?';
   }
@@ -161,6 +202,9 @@ async function saveCurrentSettings(){
       youtubeChannelId: $('youtubeChannelId').value.trim() || 'MINE',
       ga4PropertyId: $('ga4PropertyId').value.trim(),
       linkedinAdAccountId: $('linkedinAdAccountId').value.trim(),
+      campaignName: $('campaignNameInput').value.trim(),
+      campaignDesc: $('campaignDescInput').value.trim(),
+      creativeMediaUrl: $('creativeMediaUrlInput').value.trim(),
       startDate: $('startDate').value,
       endDate: $('endDate').value,
       dateRangeDays: Number($('dateRangeDays').value) || 30,
