@@ -22,7 +22,8 @@
   .btn.secondary{border-color:#6b7684;background:transparent;}
   .btn.secondary:hover{background:rgba(255,255,255,.06);}
   label{display:block;font-size:12px;color:var(--ink-dim);margin:10px 0 4px;}
-  input{width:100%;background:#0d0f12;border:1px solid var(--line);color:var(--ink);padding:8px 10px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:13px;}
+  input{width:100%;background:#0d0f12;border:1px solid var(--line);color:var(--ink);padding:8px 10px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:13px;-moz-appearance:textfield;appearance:textfield;}
+  input::-webkit-outer-spin-button, input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
   input:focus{outline:none;border-color:var(--red);}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
   .hint{font-size:11.5px;color:var(--ink-dim);margin-top:4px;}
