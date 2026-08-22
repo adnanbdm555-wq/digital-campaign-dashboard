@@ -793,23 +793,24 @@
   // into applyState(), which already knows how to repopulate every field and
   // recalculate every gauge/bar/donut. This is the one hook to swap in later
   // when you move from the Google Sheet feed to a real backend API.
+  let currentUserId = 'default';
+  function getCacheKey(){
+    return 'adpulse_data_' + (ADMIN_VIEW_USER_ID || currentUserId);
+  }
+
   async function syncFromSource(){
     let url = CONFIG.dataSourceUrl;
-    if(!url){
-      url = prompt('Paste your published data source URL (Apps Script /exec link):');
-      if(!url) return;
-      CONFIG.dataSourceUrl = url;
-    }
+    if(!url) return;
     setStatus('Syncing…', 'unsaved');
     try{
       const res = await fetch(url, {cache:'no-store'});
       if(!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       if(data && Object.keys(data).length > 0 && (data.reach !== undefined || data.spend !== undefined || data.campaignName)){
-        localStorage.setItem('adpulse_campaign_data', JSON.stringify(data));
+        localStorage.setItem(getCacheKey(), JSON.stringify(data));
         applyState(data);
       } else {
-        const cached = localStorage.getItem('adpulse_campaign_data');
+        const cached = localStorage.getItem(getCacheKey());
         if(cached) applyState(JSON.parse(cached));
       }
       checkpoint();
@@ -820,29 +821,33 @@
       $('lastEdited').textContent = 'LAST SYNCED ' + stamp.toUpperCase();
     }catch(err){
       console.error('Sync failed:', err);
-      const cached = localStorage.getItem('adpulse_campaign_data');
+      const cached = localStorage.getItem(getCacheKey());
       if(cached){
         applyState(JSON.parse(cached));
         setStatus('Loaded cached data', 'saved');
       } else {
-        setStatus('Sync failed — check connection', 'warn');
+        setStatus('Ready for data sync', 'saved');
       }
     }
   }
   $('syncBtn').addEventListener('click', syncFromSource);
-  // Load cached immediately on init, then sync fresh
-  try {
-    const cached = localStorage.getItem('adpulse_campaign_data');
-    if(cached) applyState(JSON.parse(cached));
-  } catch(e){}
-  if(CONFIG.dataSourceUrl){ syncFromSource(); }
 
   // ---- Who's logged in ----
   fetch('/api/me').then(r => r.json()).then(me => {
+    if(me && me.id) currentUserId = me.id;
     $('dashWhoami').textContent = 'Logged in as ' + (me.displayName || me.username);
-  }).catch(() => {});
+    try {
+      const cached = localStorage.getItem(getCacheKey());
+      if(cached) applyState(JSON.parse(cached));
+    } catch(e){}
+    syncFromSource();
+  }).catch(() => {
+    syncFromSource();
+  });
+
   $('dashLogout').addEventListener('click', function(e){
     e.preventDefault();
+    localStorage.removeItem(getCacheKey());
     fetch('/auth/logout', { method: 'POST' }).then(() => { location.href = '/login.html'; });
   });
 
