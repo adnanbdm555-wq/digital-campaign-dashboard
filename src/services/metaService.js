@@ -152,39 +152,57 @@ async function fetchCampaignAndCreative({ accessToken, adAccountId, metaCampaign
         }
       } else if (spec.link_data) {
         if (!campaignDesc && spec.link_data.message) campaignDesc = spec.link_data.message;
-        if (!campaignDesc && spec.link_data.name) campaignDesc = spec.link_data.name;
-        if (!campaignDesc && spec.link_data.description) campaignDesc = spec.link_data.description;
-        if (spec.link_data.picture) creativeMediaUrl = spec.link_data.picture;
-      }
-
-      if (!creativeMediaUrl) {
-        creativeMediaUrl = creative.image_url || creative.thumbnail_url || '';
-      }
-
-      if (creative.video_id && (!creativeMediaUrl || !creativeMediaUrl.endsWith('.mp4'))) {
+      if (!creativeMediaUrl && creative.effective_object_story_id) {
         try {
-          const vidRes = await axios.get(`${GRAPH}/${creative.video_id}`, {
+          const postRes = await axios.get(`${GRAPH}/${creative.effective_object_story_id}`, {
             params: {
               access_token: accessToken,
-              fields: 'id,source,picture,title,description',
+              fields: 'id,message,full_picture,source,attachments{media,media_type,unshimmed_url,url,subattachments}',
             },
           });
-          if (vidRes.data.source) {
-            creativeMediaUrl = vidRes.data.source;
-          } else if (vidRes.data.picture && !creativeMediaUrl) {
-            creativeMediaUrl = vidRes.data.picture;
+          if (postRes.data.source) {
+            creativeMediaUrl = postRes.data.source;
+          } else if (postRes.data.full_picture) {
+            creativeMediaUrl = postRes.data.full_picture;
           }
-          if (!campaignDesc && vidRes.data.description) {
-            campaignDesc = vidRes.data.description;
+          if (!campaignDesc && postRes.data.message) {
+            campaignDesc = postRes.data.message;
           }
-        } catch (e) {
-          console.warn('Video fetch warning:', e.message);
-        }
+        } catch (e) {}
       }
 
       if (!campaignDesc) {
         campaignDesc = activeAd.name || campaignName || '';
       }
+    }
+
+    // Direct adcreatives fallback if still no creative media found
+    if (!creativeMediaUrl) {
+      try {
+        const creativesRes = await axios.get(`${GRAPH}/${account}/adcreatives`, {
+          params: {
+            access_token: accessToken,
+            fields: 'id,name,title,body,image_url,thumbnail_url,video_id,object_story_spec,effective_object_story_id',
+            limit: 5,
+          },
+        });
+        const list = creativesRes.data.data || [];
+        for (const cr of list) {
+          if (cr.video_id) {
+            try {
+              const vid = await axios.get(`${GRAPH}/${cr.video_id}`, {
+                params: { access_token: accessToken, fields: 'id,source,picture' },
+              });
+              if (vid.data.source) { creativeMediaUrl = vid.data.source; break; }
+              if (vid.data.picture && !creativeMediaUrl) creativeMediaUrl = vid.data.picture;
+            } catch (e) {}
+          }
+          if (!creativeMediaUrl && (cr.image_url || cr.thumbnail_url)) {
+            creativeMediaUrl = cr.image_url || cr.thumbnail_url;
+          }
+          if (creativeMediaUrl) break;
+        }
+      } catch (e) {}
     }
   } catch (err) {
     console.warn('Could not auto-fetch campaign creative:', err.response?.data?.error?.message || err.message);
