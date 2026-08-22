@@ -98,6 +98,19 @@ router.get('/meta/callback', async (req, res) => {
   }
 });
 
+router.post('/meta/disconnect', (req, res) => {
+  const userId = getUserIdFromRequest(req);
+  if (!userId) return res.status(401).json({ error: 'Not logged in' });
+  const tokens = store.getTokens(userId, req);
+  delete tokens.meta;
+  store.saveTokens(userId, tokens);
+  res.setHeader('Set-Cookie', [
+    createSessionCookie(userId),
+    `meta_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`
+  ]);
+  res.json({ ok: true });
+});
+
 // ---- Google (YouTube + GA4) ----
 router.get('/google', (req, res) => {
   const userId = getUserIdFromRequest(req);

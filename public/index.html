@@ -48,7 +48,10 @@
     <h2><span class="dot" id="metaDot"></span> Facebook & Instagram (Meta)</h2>
     <div class="row">
       <span id="metaStatusText" style="font-size:13px;color:var(--ink-dim);">Not connected</span>
-      <a class="btn" href="/auth/meta">Connect Facebook & Instagram</a>
+      <span>
+        <a class="btn" id="metaConnectBtn" href="/auth/meta">Connect Facebook & Instagram</a>
+        <button class="btn secondary" id="metaDisconnectBtn" style="display:none;padding:8px 12px;font-size:12px;margin-left:6px;">Disconnect</button>
+      </span>
     </div>
     <div class="grid2">
       <div>
@@ -193,6 +196,7 @@ async function loadStatus(){
 
     $('metaDot').classList.toggle('on', data.metaConnected);
     $('metaStatusText').textContent = data.metaConnected ? 'Connected ✓' : 'Not connected';
+    $('metaDisconnectBtn').style.display = data.metaConnected ? 'inline-block' : 'none';
     $('googleDot').classList.toggle('on', data.googleConnected);
     $('googleStatusText').textContent = data.googleConnected ? 'Connected ✓' : 'Not connected';
     $('linkedinDot').classList.toggle('on', data.linkedinConnected);
@@ -299,6 +303,12 @@ async function loadMe(){
     if(data.role === 'admin') $('adminLink').style.display = 'inline-block';
   }catch(e){}
 }
+$('metaDisconnectBtn').addEventListener('click', async () => {
+  if(confirm('Are you sure you want to disconnect Facebook & Instagram?')){
+    await fetch('/auth/meta/disconnect', { method: 'POST' });
+    loadStatus();
+  }
+});
 $('logoutBtn').addEventListener('click', async () => {
   await fetch('/auth/logout', { method: 'POST' });
   location.href = '/login.html';
