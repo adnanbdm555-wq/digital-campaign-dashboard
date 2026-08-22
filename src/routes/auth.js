@@ -84,10 +84,13 @@ router.get('/meta/callback', async (req, res) => {
     const redirectUri = getRedirectUri(req, '/auth/meta/callback');
     const shortLived = await metaService.exchangeCodeForToken(code, redirectUri);
     const longLived = await metaService.exchangeForLongLivedToken(shortLived);
-    const tokens = store.getTokens(userId);
+    const tokens = store.getTokens(userId, req);
     tokens.meta = { accessToken: longLived, connectedAt: new Date().toISOString() };
     store.saveTokens(userId, tokens);
-    res.setHeader('Set-Cookie', createSessionCookie(userId));
+    res.setHeader('Set-Cookie', [
+      createSessionCookie(userId),
+      createDataCookie('meta_token', tokens.meta)
+    ]);
     res.redirect('/?connected=meta');
   } catch (e) {
     console.error('Meta auth error:', e.response?.data || e.message);

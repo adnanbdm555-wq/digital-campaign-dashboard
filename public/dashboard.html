@@ -782,7 +782,13 @@
       const res = await fetch(url, {cache:'no-store'});
       if(!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
-      applyState(data);
+      if(data && Object.keys(data).length > 0 && (data.reach !== undefined || data.spend !== undefined || data.campaignName)){
+        localStorage.setItem('adpulse_campaign_data', JSON.stringify(data));
+        applyState(data);
+      } else {
+        const cached = localStorage.getItem('adpulse_campaign_data');
+        if(cached) applyState(JSON.parse(cached));
+      }
       checkpoint();
       const now = new Date();
       const stamp = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
@@ -791,11 +797,22 @@
       $('lastEdited').textContent = 'LAST SYNCED ' + stamp.toUpperCase();
     }catch(err){
       console.error('Sync failed:', err);
-      setStatus('Sync failed — check source URL', 'warn');
+      const cached = localStorage.getItem('adpulse_campaign_data');
+      if(cached){
+        applyState(JSON.parse(cached));
+        setStatus('Loaded cached data', 'saved');
+      } else {
+        setStatus('Sync failed — check connection', 'warn');
+      }
     }
   }
   $('syncBtn').addEventListener('click', syncFromSource);
-  if(CONFIG.dataSourceUrl){ syncFromSource(); } // auto-sync once on load if configured
+  // Load cached immediately on init, then sync fresh
+  try {
+    const cached = localStorage.getItem('adpulse_campaign_data');
+    if(cached) applyState(JSON.parse(cached));
+  } catch(e){}
+  if(CONFIG.dataSourceUrl){ syncFromSource(); }
 
   // ---- Who's logged in ----
   fetch('/api/me').then(r => r.json()).then(me => {

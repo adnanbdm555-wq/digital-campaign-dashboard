@@ -18,9 +18,9 @@ function dateRange(settings = {}) {
   return { since: fmt(since), until: fmt(until) };
 }
 
-async function runSyncForUser(userId) {
-  const tokens = store.getTokens(userId);
-  const settings = store.getSettings(userId);
+async function runSyncForUser(userId, req) {
+  const tokens = store.getTokens(userId, req);
+  const settings = store.getSettings(userId, req);
   const { since, until } = dateRange(settings);
   const results = {};
   const errors = [];
@@ -37,6 +37,9 @@ async function runSyncForUser(userId) {
     } catch (e) {
       errors.push('Meta: ' + (e.response?.data?.error?.message || e.message));
     }
+  } else {
+    if (!tokens.meta) errors.push('Meta: Facebook account not connected yet. Please click Connect Meta first.');
+    if (!settings.metaAdAccountId) errors.push('Meta: Ad Account ID missing. Please enter your Meta Ad Account ID (e.g. 911899473972829).');
   }
 
   if (tokens.google?.refresh_token && settings.ga4PropertyId) {

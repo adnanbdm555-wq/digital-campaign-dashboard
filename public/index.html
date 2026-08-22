@@ -224,7 +224,7 @@ async function saveCurrentSettings(){
 $('saveBtn').addEventListener('click', async () => {
   $('statusMsg').textContent = 'Saving...';
   await saveCurrentSettings();
-  $('statusMsg').textContent = 'Settings saved successfully ✓';
+  $('statusMsg').innerHTML = '<span style="color:var(--good);">Settings saved successfully ✓</span>';
 });
 
 $('syncBtn').addEventListener('click', async () => {
@@ -233,13 +233,16 @@ $('syncBtn').addEventListener('click', async () => {
     await saveCurrentSettings();
     const res = await fetch('/api/refresh', { method: 'POST' });
     const data = await res.json();
+    if(data.results && Object.keys(data.results).length > 0){
+      localStorage.setItem('adpulse_campaign_data', JSON.stringify(data.results));
+    }
     if(data.errors && data.errors.length){
-      $('statusMsg').textContent = 'Sync notice: ' + data.errors.join(' | ');
+      $('statusMsg').innerHTML = '<span style="color:var(--amber);">Sync Notice: ' + data.errors.join('<br>') + '</span>';
     } else {
-      $('statusMsg').textContent = 'Campaign data synced successfully ✓ (Ready to view on dashboard)';
+      $('statusMsg').innerHTML = '<span style="color:var(--good);font-weight:700;">Campaign data synced successfully ✓ (Ready to view on dashboard)</span>';
     }
   }catch(e){
-    $('statusMsg').textContent = 'Sync failed: ' + e.message;
+    $('statusMsg').innerHTML = '<span style="color:var(--red);">Sync failed: ' + e.message + '</span>';
   }
   loadStatus();
 });

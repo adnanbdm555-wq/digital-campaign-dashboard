@@ -58,4 +58,37 @@ function verifyOAuthState(state) {
   return null;
 }
 
-module.exports = { createSessionCookie, clearSessionCookie, getUserIdFromRequest, createOAuthState, verifyOAuthState };
+function createDataCookie(name, data) {
+  const payload = Buffer.from(JSON.stringify(data)).toString('base64');
+  const signature = crypto.createHmac('sha256', config.sessionSecret).update(payload).digest('hex');
+  return `${name}=${payload}.${signature}; Path=/; HttpOnly; SameSite=Lax; Max-Age=5184000`;
+}
+
+function getDataFromCookie(req, name) {
+  const cookieHeader = req?.headers?.cookie;
+  if (!cookieHeader) return null;
+  const cookies = cookieHeader.split(';').map(c => c.trim());
+  const match = cookies.find(c => c.startsWith(`${name}=`));
+  if (!match) return null;
+  const token = match.split('=')[1];
+  if (!token) return null;
+  try {
+    const [payload, sig] = token.split('.');
+    if (!payload || !sig) return null;
+    const expectedSig = crypto.createHmac('sha256', config.sessionSecret).update(payload).digest('hex');
+    if (sig === expectedSig) {
+      return JSON.parse(Buffer.from(payload, 'base64').toString('utf8'));
+    }
+  } catch (e) {}
+  return null;
+}
+
+module.exports = { 
+  createSessionCookie, 
+  clearSessionCookie, 
+  getUserIdFromRequest, 
+  createOAuthState, 
+  verifyOAuthState,
+  createDataCookie,
+  getDataFromCookie
+};

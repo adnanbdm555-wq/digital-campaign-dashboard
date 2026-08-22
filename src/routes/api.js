@@ -1,51 +1,58 @@
 const express = require('express');
 const store = require('../store');
 const scheduler = require('../scheduler');
+const { createDataCookie, getUserIdFromRequest } = require('../sessionHelper');
 
 const router = express.Router();
 router.use(express.json());
 
-// Every route here is mounted behind requireAuth in server.js, so
-// req.session.userId is always present by the time a handler runs.
-
 router.get('/me', (req, res) => {
-  const user = store.findUserById(req.session.userId);
+  const userId = getUserIdFromRequest(req);
+  const user = store.findUserById(userId);
   if (!user) return res.status(401).json({ error: 'Not logged in' });
   res.json({ id: user.id, username: user.username, displayName: user.displayName, role: user.role || 'user' });
 });
 
-// What the dashboard's CONFIG.dataSourceUrl fetches — same-origin, so the
-// session cookie travels with it automatically. Scoped to this user only.
 router.get('/campaign-data', (req, res) => {
-  res.json(store.getCampaignData(req.session.userId));
+  const userId = getUserIdFromRequest(req);
+  res.json(store.getCampaignData(userId, req));
 });
 
 router.get('/status', (req, res) => {
-  const tokens = store.getTokens(req.session.userId);
+  const userId = getUserIdFromRequest(req);
+  const tokens = store.getTokens(userId, req);
   res.json({
-    ...store.getStatus(req.session.userId),
-    metaConnected: !!tokens.meta,
+    ...store.getStatus(userId),
+    metaConnected: !!(tokens.meta?.accessToken || tokens.meta),
     googleConnected: !!tokens.google?.refresh_token,
     linkedinConnected: !!tokens.linkedin?.access_token,
-    settings: store.getSettings(req.session.userId),
-    apiData: store.getApiData(req.session.userId),
-    manualOverrides: store.getManualOverrides(req.session.userId),
+    settings: store.getSettings(userId, req),
+    apiData: store.getApiData(userId, req),
+    manualOverrides: store.getManualOverrides(userId),
   });
 });
 
 router.post('/settings', (req, res) => {
-  store.saveSettings(req.session.userId, { ...store.getSettings(req.session.userId), ...req.body });
-  res.json({ ok: true });
+  const userId = getUserIdFromRequest(req);
+  const updated = { ...store.getSettings(userId, req), ...req.body };
+  store.saveSettings(userId, updated);
+  res.setHeader('Set-Cookie', createDataCookie('camp_settings', updated));
+  res.json({ ok: true, settings: updated });
 });
 
 router.post('/manual', (req, res) => {
-  store.saveManualOverrides(req.session.userId, { ...store.getManualOverrides(req.session.userId), ...req.body });
+  const userId = getUserIdFromRequest(req);
+  store.saveManualOverrides(userId, { ...store.getManualOverrides(userId), ...req.body });
   res.json({ ok: true });
 });
 
 router.post('/refresh', async (req, res) => {
+  const userId = getUserIdFromRequest(req);
   try {
-    const { results, errors } = await scheduler.runSyncForUser(req.session.userId);
+    const { results, errors } = await scheduler.runSyncForUser(userId, req);
+    if (results && Object.keys(results).length > 0) {
+      res.setHeader('Set-Cookie', createDataCookie('camp_data', results));
+    }
     res.json({ ok: true, results, errors });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });

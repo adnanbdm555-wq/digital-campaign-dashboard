@@ -13,6 +13,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { getDataFromCookie } = require('./sessionHelper');
 
 const DATA_DIR = process.env.VERCEL ? path.join('/tmp', 'data') : path.join(__dirname, '..', 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
@@ -134,25 +135,45 @@ const store = {
   getUsersSummary,
   ensureAdminExists,
 
-  getTokens: (userId) => readJson(fileFor(userId, 'tokens'), {}),
+  getTokens: (userId, req) => {
+    const fileTokens = readJson(fileFor(userId, 'tokens'), {});
+    const cookieMeta = getDataFromCookie(req, 'meta_token');
+    const cookieGoogle = getDataFromCookie(req, 'google_token');
+    const cookieLinkedin = getDataFromCookie(req, 'linkedin_token');
+    return {
+      ...fileTokens,
+      meta: cookieMeta || fileTokens.meta,
+      google: cookieGoogle || fileTokens.google,
+      linkedin: cookieLinkedin || fileTokens.linkedin,
+    };
+  },
   saveTokens: (userId, tokens) => writeJson(fileFor(userId, 'tokens'), tokens),
 
-  getSettings: (userId) => readJson(fileFor(userId, 'settings'), {
-    metaAdAccountId: '',
-    metaResultActionType: '', // e.g. 'lead', 'purchase', 'link_click' — blank uses a CPM-style proxy instead
-    youtubeChannelId: 'MINE', // 'MINE' works once the channel owner has connected via /auth/google
-    ga4PropertyId: '',
-    linkedinAdAccountId: '',
-    dateRangeDays: 30,
-    startDate: '',
-    endDate: '',
-    campaignName: '',
-    campaignDesc: '',
-    creativeMediaUrl: '',
-  }),
+  getSettings: (userId, req) => {
+    const defaults = {
+      metaAdAccountId: '',
+      metaResultActionType: '', // e.g. 'lead', 'purchase', 'link_click' — blank uses a CPM-style proxy instead
+      youtubeChannelId: 'MINE', // 'MINE' works once the channel owner has connected via /auth/google
+      ga4PropertyId: '',
+      linkedinAdAccountId: '',
+      dateRangeDays: 30,
+      startDate: '',
+      endDate: '',
+      campaignName: '',
+      campaignDesc: '',
+      creativeMediaUrl: '',
+    };
+    const fileSettings = readJson(fileFor(userId, 'settings'), defaults);
+    const cookieSettings = getDataFromCookie(req, 'camp_settings') || {};
+    return { ...fileSettings, ...cookieSettings };
+  },
   saveSettings: (userId, settings) => writeJson(fileFor(userId, 'settings'), settings),
 
-  getApiData: (userId) => readJson(fileFor(userId, 'api-data'), {}),
+  getApiData: (userId, req) => {
+    const fileData = readJson(fileFor(userId, 'api-data'), {});
+    const cookieData = getDataFromCookie(req, 'camp_data') || {};
+    return { ...fileData, ...cookieData };
+  },
   saveApiData: (userId, data) => writeJson(fileFor(userId, 'api-data'), data),
 
   getManualOverrides: (userId) => readJson(fileFor(userId, 'manual-overrides'), {}),
@@ -163,9 +184,9 @@ const store = {
 
   // What each user's dashboard actually fetches — their own automated
   // pulls, with their own manually-entered fields layered on top.
-  getCampaignData: (userId) => {
-    const settings = store.getSettings(userId);
-    const apiData = store.getApiData(userId);
+  getCampaignData: (userId, req) => {
+    const settings = store.getSettings(userId, req);
+    const apiData = store.getApiData(userId, req);
     const overrides = store.getManualOverrides(userId);
 
     return {
