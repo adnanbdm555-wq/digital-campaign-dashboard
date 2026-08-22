@@ -1,4 +1,4 @@
-﻿const crypto = require('crypto');
+const crypto = require('crypto');
 const config = require('./config');
 
 function createSessionCookie(userId) {
@@ -36,4 +36,26 @@ function getUserIdFromRequest(req) {
   return null;
 }
 
-module.exports = { createSessionCookie, clearSessionCookie, getUserIdFromRequest };
+function createOAuthState(userId) {
+  const payload = Buffer.from(JSON.stringify({ userId, ts: Date.now() })).toString('base64');
+  const sig = crypto.createHmac('sha256', config.sessionSecret).update(payload).digest('hex');
+  return `${payload}.${sig}`;
+}
+
+function verifyOAuthState(state) {
+  if (!state) return null;
+  try {
+    const [payload, sig] = state.split('.');
+    if (!payload || !sig) return null;
+    const expectedSig = crypto.createHmac('sha256', config.sessionSecret).update(payload).digest('hex');
+    if (sig === expectedSig) {
+      const data = JSON.parse(Buffer.from(payload, 'base64').toString('utf8'));
+      if (data.userId && (Date.now() - data.ts < 30 * 60 * 1000)) {
+        return data.userId;
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
+module.exports = { createSessionCookie, clearSessionCookie, getUserIdFromRequest, createOAuthState, verifyOAuthState };

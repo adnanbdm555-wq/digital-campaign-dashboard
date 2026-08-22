@@ -19,7 +19,7 @@ router.get('/signup-status', (req, res) => {
   res.json({ open: store.getUsers().length === 0 });
 });
 
-const { createSessionCookie, clearSessionCookie } = require('../sessionHelper');
+const { createSessionCookie, clearSessionCookie, getUserIdFromRequest, createOAuthState, verifyOAuthState } = require('../sessionHelper');
 
 router.post('/signup', async (req, res) => {
   const { username, password, displayName } = req.body || {};
@@ -67,91 +67,94 @@ function getRedirectUri(req, callbackPath) {
 
 // ---- Meta (Facebook + Instagram) ----
 router.get('/meta', (req, res) => {
-  if (!req.session.userId) return res.redirect('/login.html');
-  const state = crypto.randomBytes(16).toString('hex');
-  req.session.metaState = state;
+  const userId = getUserIdFromRequest(req);
+  if (!userId) return res.redirect('/login.html');
+  const state = createOAuthState(userId);
   const redirectUri = getRedirectUri(req, '/auth/meta/callback');
   res.redirect(metaService.getLoginUrl(redirectUri, state));
 });
 
 router.get('/meta/callback', async (req, res) => {
-  if (!req.session.userId) return res.redirect('/login.html');
   const { code, state } = req.query;
-  if (!state || state !== req.session.metaState) {
-    return res.status(400).send('Invalid or expired login attempt — go back and click Connect again.');
+  const userId = verifyOAuthState(state) || getUserIdFromRequest(req);
+  if (!userId) {
+    return res.status(400).send('Invalid or expired login attempt — please go back and click Connect again.');
   }
   try {
     const redirectUri = getRedirectUri(req, '/auth/meta/callback');
     const shortLived = await metaService.exchangeCodeForToken(code, redirectUri);
     const longLived = await metaService.exchangeForLongLivedToken(shortLived);
-    const tokens = store.getTokens(req.session.userId);
+    const tokens = store.getTokens(userId);
     tokens.meta = { accessToken: longLived, connectedAt: new Date().toISOString() };
-    store.saveTokens(req.session.userId, tokens);
+    store.saveTokens(userId, tokens);
+    res.setHeader('Set-Cookie', createSessionCookie(userId));
     res.redirect('/?connected=meta');
   } catch (e) {
     console.error('Meta auth error:', e.response?.data || e.message);
-    res.status(500).send('Meta connection failed — check the server logs.');
+    res.status(500).send('Meta connection failed — ' + (e.response?.data?.error?.message || e.message));
   }
 });
 
 // ---- Google (YouTube + GA4) ----
 router.get('/google', (req, res) => {
-  if (!req.session.userId) return res.redirect('/login.html');
-  const state = crypto.randomBytes(16).toString('hex');
-  req.session.googleState = state;
+  const userId = getUserIdFromRequest(req);
+  if (!userId) return res.redirect('/login.html');
+  const state = createOAuthState(userId);
   const redirectUri = getRedirectUri(req, '/auth/google/callback');
   res.redirect(googleService.getLoginUrl(redirectUri, state));
 });
 
 router.get('/google/callback', async (req, res) => {
-  if (!req.session.userId) return res.redirect('/login.html');
   const { code, state } = req.query;
-  if (!state || state !== req.session.googleState) {
-    return res.status(400).send('Invalid or expired login attempt — go back and click Connect again.');
+  const userId = verifyOAuthState(state) || getUserIdFromRequest(req);
+  if (!userId) {
+    return res.status(400).send('Invalid or expired login attempt — please go back and click Connect again.');
   }
   try {
     const redirectUri = getRedirectUri(req, '/auth/google/callback');
     const newTokens = await googleService.exchangeCodeForTokens(code, redirectUri);
-    const tokens = store.getTokens(req.session.userId);
+    const tokens = store.getTokens(userId);
     tokens.google = {
       ...(tokens.google || {}),
       ...newTokens,
       refresh_token: newTokens.refresh_token || tokens.google?.refresh_token,
       connectedAt: new Date().toISOString(),
     };
-    store.saveTokens(req.session.userId, tokens);
+    store.saveTokens(userId, tokens);
+    res.setHeader('Set-Cookie', createSessionCookie(userId));
     res.redirect('/?connected=google');
   } catch (e) {
     console.error('Google auth error:', e.message);
-    res.status(500).send('Google connection failed — check the server logs.');
+    res.status(500).send('Google connection failed — ' + e.message);
   }
 });
 
 // ---- LinkedIn (Ad Analytics) ----
 router.get('/linkedin', (req, res) => {
-  if (!req.session.userId) return res.redirect('/login.html');
-  const state = crypto.randomBytes(16).toString('hex');
-  req.session.linkedinState = state;
+  const userId = getUserIdFromRequest(req);
+  if (!userId) return res.redirect('/login.html');
+  const state = createOAuthState(userId);
   const redirectUri = getRedirectUri(req, '/auth/linkedin/callback');
   res.redirect(linkedinService.getLoginUrl(redirectUri, state));
 });
 
 router.get('/linkedin/callback', async (req, res) => {
-  if (!req.session.userId) return res.redirect('/login.html');
   const { code, state } = req.query;
-  if (!state || state !== req.session.linkedinState) {
-    return res.status(400).send('Invalid or expired login attempt — go back and click Connect again.');
+  const userId = verifyOAuthState(state) || getUserIdFromRequest(req);
+  if (!userId) {
+    return res.status(400).send('Invalid or expired login attempt — please go back and click Connect again.');
   }
   try {
     const redirectUri = getRedirectUri(req, '/auth/linkedin/callback');
     const newTokens = await linkedinService.exchangeCodeForToken(code, redirectUri);
-    const tokens = store.getTokens(req.session.userId);
+    const tokens = store.getTokens(userId);
     tokens.linkedin = { ...newTokens, connectedAt: new Date().toISOString() };
-    store.saveTokens(req.session.userId, tokens);
+    store.saveTokens(userId, tokens);
+    res.setHeader('Set-Cookie', createSessionCookie(userId));
     res.redirect('/?connected=linkedin');
   } catch (e) {
     console.error('LinkedIn auth error:', e.response?.data || e.message);
-    res.status(500).send('LinkedIn connection failed — check the server logs.');
+    res.status(500).send('LinkedIn connection failed — ' + (e.response?.data?.message || e.message));
   }
 });
 
