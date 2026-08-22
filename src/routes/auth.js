@@ -50,12 +50,18 @@ router.post('/logout', (req, res) => {
   req.session.destroy(() => res.json({ ok: true }));
 });
 
+function getRedirectUri(req, callbackPath) {
+  const host = req.headers['x-forwarded-host'] || req.get('host') || 'localhost:3000';
+  const proto = req.headers['x-forwarded-proto'] || (req.secure || host.includes('vercel.app') ? 'https' : req.protocol || 'http');
+  return `${proto}://${host}${callbackPath}`;
+}
+
 // ---- Meta (Facebook + Instagram) ----
 router.get('/meta', (req, res) => {
   if (!req.session.userId) return res.redirect('/login.html');
   const state = crypto.randomBytes(16).toString('hex');
   req.session.metaState = state;
-  const redirectUri = `${config.baseUrl}/auth/meta/callback`;
+  const redirectUri = getRedirectUri(req, '/auth/meta/callback');
   res.redirect(metaService.getLoginUrl(redirectUri, state));
 });
 
@@ -66,7 +72,7 @@ router.get('/meta/callback', async (req, res) => {
     return res.status(400).send('Invalid or expired login attempt — go back and click Connect again.');
   }
   try {
-    const redirectUri = `${config.baseUrl}/auth/meta/callback`;
+    const redirectUri = getRedirectUri(req, '/auth/meta/callback');
     const shortLived = await metaService.exchangeCodeForToken(code, redirectUri);
     const longLived = await metaService.exchangeForLongLivedToken(shortLived);
     const tokens = store.getTokens(req.session.userId);
@@ -84,7 +90,7 @@ router.get('/google', (req, res) => {
   if (!req.session.userId) return res.redirect('/login.html');
   const state = crypto.randomBytes(16).toString('hex');
   req.session.googleState = state;
-  const redirectUri = `${config.baseUrl}/auth/google/callback`;
+  const redirectUri = getRedirectUri(req, '/auth/google/callback');
   res.redirect(googleService.getLoginUrl(redirectUri, state));
 });
 
@@ -95,13 +101,12 @@ router.get('/google/callback', async (req, res) => {
     return res.status(400).send('Invalid or expired login attempt — go back and click Connect again.');
   }
   try {
-    const redirectUri = `${config.baseUrl}/auth/google/callback`;
+    const redirectUri = getRedirectUri(req, '/auth/google/callback');
     const newTokens = await googleService.exchangeCodeForTokens(code, redirectUri);
     const tokens = store.getTokens(req.session.userId);
     tokens.google = {
       ...(tokens.google || {}),
       ...newTokens,
-      // Google only sends refresh_token on first consent — keep the existing one on re-auth
       refresh_token: newTokens.refresh_token || tokens.google?.refresh_token,
       connectedAt: new Date().toISOString(),
     };
@@ -118,7 +123,7 @@ router.get('/linkedin', (req, res) => {
   if (!req.session.userId) return res.redirect('/login.html');
   const state = crypto.randomBytes(16).toString('hex');
   req.session.linkedinState = state;
-  const redirectUri = `${config.baseUrl}/auth/linkedin/callback`;
+  const redirectUri = getRedirectUri(req, '/auth/linkedin/callback');
   res.redirect(linkedinService.getLoginUrl(redirectUri, state));
 });
 
@@ -129,7 +134,7 @@ router.get('/linkedin/callback', async (req, res) => {
     return res.status(400).send('Invalid or expired login attempt — go back and click Connect again.');
   }
   try {
-    const redirectUri = `${config.baseUrl}/auth/linkedin/callback`;
+    const redirectUri = getRedirectUri(req, '/auth/linkedin/callback');
     const newTokens = await linkedinService.exchangeCodeForToken(code, redirectUri);
     const tokens = store.getTokens(req.session.userId);
     tokens.linkedin = { ...newTokens, connectedAt: new Date().toISOString() };
@@ -142,3 +147,4 @@ router.get('/linkedin/callback', async (req, res) => {
 });
 
 module.exports = router;
+
