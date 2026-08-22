@@ -230,16 +230,19 @@
       </div>
     </div>
 
-    <div class="hero-creative" id="heroCreativeBox">
+    <div class="hero-creative" id="heroCreativeBox" style="position:relative;">
       <div id="mediaContainer" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0d0f12;">
         <div style="text-align:center;padding:40px 20px;color:var(--ink);">
           <div style="font-size:48px;margin-bottom:12px;">🎬</div>
-          <div style="font-size:18px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;">GFS Premium Video Creative</div>
-          <div style="font-size:13px;color:var(--ink-dim);margin-top:6px;">80 &amp; 120 Sq. Yards Luxury Villas · Leads &amp; Video Campaign</div>
+          <div style="font-size:18px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;" id="mediaPlaceholderTitle">Campaign Video Creative</div>
+          <div style="font-size:13px;color:var(--ink-dim);margin-top:6px;" id="mediaPlaceholderDesc">Digital Video Campaign · Leads &amp; Engagement</div>
           <div style="margin-top:16px;">
-            <span style="font-size:11px;background:rgba(200,16,46,0.2);border:1px solid var(--red);color:#fff;padding:4px 12px;border-radius:20px;">Meta Video Ads Active</span>
+            <button class="btn" onclick="promptMediaUrl()" style="font-size:12px;padding:6px 14px;cursor:pointer;background:rgba(200,16,46,0.2);border:1px solid var(--red);color:#fff;border-radius:4px;">➕ Set Video or Image URL</button>
           </div>
         </div>
+      </div>
+      <div style="position:absolute;top:10px;right:10px;display:flex;gap:6px;z-index:10;">
+        <button class="btn secondary" onclick="promptMediaUrl()" style="font-size:10px;padding:4px 8px;cursor:pointer;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:3px;">✎ Edit Media</button>
       </div>
       <div class="hero-creative-tag" id="mediaTypeTag">CAMPAIGN VIDEO CREATIVE</div>
     </div>
@@ -251,7 +254,7 @@
   <!-- KPI GAUGE CLUSTER -->
   <div class="section">
     <div class="section-head"><span class="num">01</span><h2>Key Metrics</h2><span class="rule"></span></div>
-    <div class="hint">Edit the values below each dial — the needle recalculates instantly. "Scale max" sets each dial's own ceiling, so you can size it to any campaign, no fixed limit.</div>
+    <div class="hint">Overview of primary campaign delivery metrics and cost efficiency.</div>
     <div class="cluster">
 
       <div class="gauge-card">
@@ -262,10 +265,10 @@
           <line id="needleReach" x1="100" y1="100" x2="100" y2="26" stroke="#f3f1ea" stroke-width="2.5" stroke-linecap="round" transform="rotate(-90 100 100)"/>
           <circle cx="100" cy="100" r="5" fill="#C8102E"/>
         </svg>
-        <div class="gauge-value"><input type="number" id="reach" value="572966"></div>
-        <div class="gauge-sub">people reached · 0 – <span id="reachMaxLabel">700K</span> scale</div>
-        <div class="gauge-edit-row">Scale max <input type="number" id="reachMax" value="700000" step="1000" style="width:76px;text-align:center;"></div>
-        <div class="gauge-tag"><span contenteditable="true" id="reachTag">Peak reach on Aug 15–16</span></div>
+        <div class="gauge-value"><input type="number" id="reach" value="0"></div>
+        <div class="gauge-sub">people reached</div>
+        <input type="hidden" id="reachMax" value="700000">
+        <div class="gauge-tag"><span contenteditable="true" id="reachTag">Total Reach</span></div>
       </div>
 
       <div class="gauge-card">
@@ -276,10 +279,10 @@
           <line id="needleSpend" x1="100" y1="100" x2="100" y2="26" stroke="#f3f1ea" stroke-width="2.5" stroke-linecap="round" transform="rotate(-90 100 100)"/>
           <circle cx="100" cy="100" r="5" fill="#C8102E"/>
         </svg>
-        <div class="gauge-value">Rs <input type="number" id="spend" value="16059"></div>
-        <div class="gauge-sub">of budget · 0 – <span id="spendMaxLabel">20K</span> scale</div>
-        <div class="gauge-edit-row">Scale max <input type="number" id="spendMax" value="20000" step="500" style="width:76px;text-align:center;"></div>
-        <div class="gauge-tag"><span contenteditable="true" id="spendTag">100% Budget Utilized</span></div>
+        <div class="gauge-value">Rs <input type="number" id="spend" value="0"></div>
+        <div class="gauge-sub">total budget utilized</div>
+        <input type="hidden" id="spendMax" value="20000">
+        <div class="gauge-tag"><span contenteditable="true" id="spendTag">Budget Utilized</span></div>
       </div>
 
       <div class="gauge-card">
@@ -290,10 +293,10 @@
           <line id="needleCpr" x1="100" y1="100" x2="100" y2="26" stroke="#f3f1ea" stroke-width="2.5" stroke-linecap="round" transform="rotate(-90 100 100)"/>
           <circle cx="100" cy="100" r="5" fill="#4fae7a"/>
         </svg>
-        <div class="gauge-value">Rs <input type="number" id="cpr" value="28.03" step="0.01"></div>
-        <div class="gauge-sub">lower is better · 0 – <span id="cprMaxLabel">50</span> scale</div>
-        <div class="gauge-edit-row">Scale max <input type="number" id="cprMax" value="50" step="1" style="width:76px;text-align:center;"></div>
-        <div class="gauge-tag"><span contenteditable="true" id="cprTag">High Efficiency</span></div>
+        <div class="gauge-value">Rs <input type="number" id="cpr" value="0" step="0.01"></div>
+        <div class="gauge-sub">cost per result · lower is better</div>
+        <input type="hidden" id="cprMax" value="50">
+        <div class="gauge-tag"><span contenteditable="true" id="cprTag">Cost Efficiency</span></div>
       </div>
 
     </div>
@@ -528,16 +531,12 @@
     const reach = parseFloat($('reach').value) || 0;
     const spend = parseFloat($('spend').value) || 0;
     const cpr = parseFloat($('cpr').value) || 0;
-    // Scale max is fully campaign-customizable — no hardcoded ceiling. Fall back to a safe minimum of 1 to avoid divide-by-zero.
-    const reachMax = Math.max(parseFloat($('reachMax').value) || 0, 1);
-    const spendMax = Math.max(parseFloat($('spendMax').value) || 0, 1);
-    const cprMax = Math.max(parseFloat($('cprMax').value) || 0, 1);
+    const reachMax = Math.max(parseFloat($('reachMax')?.value) || (reach > 0 ? reach * 1.2 : 100000), 1);
+    const spendMax = Math.max(parseFloat($('spendMax')?.value) || (spend > 0 ? spend * 1.2 : 20000), 1);
+    const cprMax = Math.max(parseFloat($('cprMax')?.value) || (cpr > 0 ? cpr * 1.5 : 50), 1);
     setGauge('arcReach','needleReach', reach, reachMax);
     setGauge('arcSpend','needleSpend', spend, spendMax);
     setGauge('arcCpr','needleCpr', cpr, cprMax, 0.4); // lower cpr = green
-    $('reachMaxLabel').textContent = formatShort(reachMax);
-    $('spendMaxLabel').textContent = formatShort(spendMax);
-    $('cprMaxLabel').textContent = formatShort(cprMax);
   }
 
   function updateGender(){
@@ -651,7 +650,23 @@
     return state;
   }
 
+  window.promptMediaUrl = function(){
+    const current = window._currentCreativeUrl || '';
+    const url = prompt('Enter Video (YouTube / MP4) or Image URL:', current);
+    if(url !== null){
+      window._currentCreativeUrl = url.trim();
+      renderCreativeMedia(url.trim(), $('campaignName')?.textContent, $('campaignDesc')?.textContent);
+      checkpoint();
+      fetch('/api/manual', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ creativeMediaUrl: url.trim() })
+      }).catch(()=>{});
+    }
+  };
+
   function renderCreativeMedia(url, campName, campDesc){
+    window._currentCreativeUrl = url || '';
     const container = $('mediaContainer');
     if(!container) return;
     if(!url || !url.trim()){
@@ -661,7 +676,7 @@
           <div style="font-size:18px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;">${campName || 'Campaign Video Creative'}</div>
           <div style="font-size:13px;color:var(--ink-dim);margin-top:6px;">${campDesc || 'Digital Video Campaign · Leads &amp; Engagement'}</div>
           <div style="margin-top:16px;">
-            <span style="font-size:11px;background:rgba(200,16,46,0.2);border:1px solid var(--red);color:#fff;padding:4px 12px;border-radius:20px;">Meta Video Ads Active</span>
+            <button class="btn" onclick="promptMediaUrl()" style="font-size:12px;padding:6px 14px;cursor:pointer;background:rgba(200,16,46,0.2);border:1px solid var(--red);color:#fff;border-radius:4px;">➕ Set Video or Image URL</button>
           </div>
         </div>
       `;
