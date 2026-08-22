@@ -34,7 +34,7 @@ router.post('/signup', async (req, res) => {
   const passwordHash = await bcrypt.hash(password, 10);
   const user = store.createUser({ username: username.trim(), passwordHash, displayName, role: 'admin' });
   if (req.session) req.session.userId = user.id;
-  res.setHeader('Set-Cookie', createSessionCookie(user.id));
+  res.setHeader('Set-Cookie', createSessionCookie(user));
   res.json({ ok: true });
 });
 
@@ -46,7 +46,7 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'Wrong username or password.' });
   }
   if (req.session) req.session.userId = user.id;
-  res.setHeader('Set-Cookie', createSessionCookie(user.id));
+  res.setHeader('Set-Cookie', createSessionCookie(user));
   res.json({ ok: true });
 });
 

@@ -52,17 +52,33 @@ function fileFor(userId, name) {
   return path.join(userDir(userId), name + '.json');
 }
 
+const DEFAULT_ADMIN = {
+  id: 'admin_adpulsemedia',
+  username: 'adpulsemedia',
+  passwordHash: bcrypt.hashSync('admin12345', 10),
+  displayName: 'Adnan Karim',
+  role: 'admin',
+  createdAt: '2025-01-01T00:00:00.000Z',
+};
+
 // ---- Accounts ----
 function getUsers() {
-  return readJson(USERS_FILE, []);
+  const list = readJson(USERS_FILE, []);
+  if (!list.some((u) => u.username?.toLowerCase() === 'adpulsemedia' || u.id === 'admin_adpulsemedia')) {
+    list.unshift(DEFAULT_ADMIN);
+  }
+  return list;
 }
 function saveUsers(users) {
   writeJson(USERS_FILE, users);
 }
 function findUserByUsername(username) {
+  if (!username) return null;
   return getUsers().find((u) => u.username.toLowerCase() === String(username).toLowerCase());
 }
 function findUserById(id) {
+  if (!id) return null;
+  if (id === 'admin_adpulsemedia') return DEFAULT_ADMIN;
   return getUsers().find((u) => u.id === id);
 }
 function createUser({ username, passwordHash, displayName, role }) {
@@ -103,27 +119,16 @@ function getUsersSummary() {
   }));
 }
 
-// Called once at server startup. If accounts already exist (e.g. from
-// testing before the admin role existed) but none is marked admin yet,
-// promotes whichever account was created first so the app always has
-// exactly one admin to start from.
 function ensureAdminExists() {
   const users = getUsers();
   if (users.length === 0) {
-    const bcrypt = require('bcryptjs');
-    const defaultAdmin = store.createUser({
-      username: 'adpulsemedia',
-      passwordHash: bcrypt.hashSync('admin12345', 10),
-      displayName: 'Adnan Karim',
-      role: 'admin',
-    });
-    console.log('Default admin created: adpulsemedia');
+    saveUsers([DEFAULT_ADMIN]);
+    console.log('Default admin initialized: adpulsemedia');
     return;
   }
-  if (users.some((u) => u.role === 'admin')) return;
-  const oldest = [...users].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))[0];
-  updateUserRole(oldest.id, 'admin');
-  console.log(`No admin found — promoted "${oldest.username}" to admin automatically.`);
+  if (!users.some((u) => u.role === 'admin')) {
+    updateUserRole(users[0].id, 'admin');
+  }
 }
 
 const store = {

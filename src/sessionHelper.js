@@ -1,8 +1,11 @@
 const crypto = require('crypto');
 const config = require('./config');
 
-function createSessionCookie(userId) {
-  const payload = Buffer.from(JSON.stringify({ userId, exp: Date.now() + 30 * 24 * 60 * 60 * 1000 })).toString('base64url');
+function createSessionCookie(userOrId) {
+  const userId = typeof userOrId === 'object' ? userOrId.id : userOrId;
+  const role = typeof userOrId === 'object' ? (userOrId.role || 'user') : (userId === 'admin_adpulsemedia' ? 'admin' : 'user');
+  const username = typeof userOrId === 'object' ? (userOrId.username || '') : '';
+  const payload = Buffer.from(JSON.stringify({ userId, role, username, exp: Date.now() + 30 * 24 * 60 * 60 * 1000 })).toString('base64url');
   const signature = crypto.createHmac('sha256', config.sessionSecret).update(payload).digest('hex');
   return `session_token=${payload}.${signature}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`;
 }
@@ -11,8 +14,7 @@ function clearSessionCookie() {
   return `session_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
 }
 
-function getUserIdFromRequest(req) {
-  if (req.session && req.session.userId) return req.session.userId;
+function getUserSessionFromRequest(req) {
   const cookieHeader = req.headers?.cookie;
   if (!cookieHeader) return null;
   const cookies = cookieHeader.split(';').map(c => c.trim());
@@ -34,11 +36,19 @@ function getUserIdFromRequest(req) {
       if (decoded && decoded.userId && decoded.exp > Date.now()) {
         if (!req.session) req.session = {};
         req.session.userId = decoded.userId;
-        return decoded.userId;
+        req.session.role = decoded.role || (decoded.userId === 'admin_adpulsemedia' ? 'admin' : 'user');
+        req.session.username = decoded.username || '';
+        return { userId: decoded.userId, role: req.session.role, username: req.session.username };
       }
     }
   } catch (e) {}
   return null;
+}
+
+function getUserIdFromRequest(req) {
+  if (req.session && req.session.userId) return req.session.userId;
+  const session = getUserSessionFromRequest(req);
+  return session ? session.userId : null;
 }
 
 function createOAuthState(userId) {
@@ -101,6 +111,7 @@ module.exports = {
   createSessionCookie, 
   clearSessionCookie, 
   getUserIdFromRequest, 
+  getUserSessionFromRequest,
   createOAuthState, 
   verifyOAuthState,
   createDataCookie,
