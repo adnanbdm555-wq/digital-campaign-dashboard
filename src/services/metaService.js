@@ -152,6 +152,15 @@ async function fetchCampaignAndCreative({ accessToken, adAccountId, metaCampaign
         }
       } else if (spec.link_data) {
         if (!campaignDesc && spec.link_data.message) campaignDesc = spec.link_data.message;
+        if (!campaignDesc && spec.link_data.name) campaignDesc = spec.link_data.name;
+        if (!campaignDesc && spec.link_data.description) campaignDesc = spec.link_data.description;
+        if (spec.link_data.picture) creativeMediaUrl = spec.link_data.picture;
+      }
+
+      if (!creativeMediaUrl && (creative.image_url || creative.thumbnail_url)) {
+        creativeMediaUrl = creative.image_url || creative.thumbnail_url;
+      }
+
       if (!creativeMediaUrl && creative.effective_object_story_id) {
         try {
           const postRes = await axios.get(`${GRAPH}/${creative.effective_object_story_id}`, {
