@@ -92,17 +92,28 @@
   </div>
 
   <div class="card">
-    <label>Date range (days back from today)</label>
-    <input id="dateRangeDays" type="number" value="30" style="max-width:120px;">
+    <h2>Date Range Selection</h2>
+    <div class="grid2">
+      <div>
+        <label>Start Date (From)</label>
+        <input id="startDate" type="date">
+      </div>
+      <div>
+        <label>End Date (To)</label>
+        <input id="endDate" type="date">
+      </div>
+    </div>
+    <label style="margin-top:14px;">Or Days back from today (if dates left empty)</label>
+    <input id="dateRangeDays" type="number" placeholder="30" style="max-width:140px;">
     <div class="row" style="margin-top:16px;">
       <button class="btn" id="saveBtn">Save Settings</button>
-      <button class="btn secondary" id="syncBtn">⟳ Sync Now</button>
+      <button class="btn secondary" id="syncBtn" style="border-color:var(--red);color:#fff;background:rgba(200,16,46,.25);">⟳ Sync Now</button>
     </div>
-    <div id="statusMsg">—</div>
+    <div id="statusMsg" style="font-weight:500;margin-top:12px;">—</div>
   </div>
 
   <div class="footer-links">
-    <a href="/dashboard.html">Open the campaign dashboard →</a>
+    <a href="/dashboard.html" style="font-size:15px;font-weight:600;color:#fff;">Open the campaign dashboard →</a>
   </div>
 </div>
 
@@ -127,18 +138,20 @@ async function loadStatus(){
     $('youtubeChannelId').value = s.youtubeChannelId || 'MINE';
     $('ga4PropertyId').value = s.ga4PropertyId || '';
     $('linkedinAdAccountId').value = s.linkedinAdAccountId || '';
-    $('dateRangeDays').value = s.dateRangeDays || 30;
+    $('startDate').value = s.startDate || '';
+    $('endDate').value = s.endDate || '';
+    $('dateRangeDays').value = s.dateRangeDays ?? 30;
     $('tkReach').value = (data.manualOverrides || {}).tkReach ?? '';
 
     $('statusMsg').textContent = data.lastSync
       ? `Last synced ${new Date(data.lastSync).toLocaleString()}${data.lastError ? ' — issues: ' + data.lastError : ''}`
-      : 'Never synced yet.';
+      : 'Never synced yet. (Click "Save Settings" then "Sync Now")';
   }catch(e){
     $('statusMsg').textContent = 'Could not reach the backend — is the server running?';
   }
 }
 
-$('saveBtn').addEventListener('click', async () => {
+async function saveCurrentSettings(){
   await fetch('/api/settings', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
@@ -148,6 +161,8 @@ $('saveBtn').addEventListener('click', async () => {
       youtubeChannelId: $('youtubeChannelId').value.trim() || 'MINE',
       ga4PropertyId: $('ga4PropertyId').value.trim(),
       linkedinAdAccountId: $('linkedinAdAccountId').value.trim(),
+      startDate: $('startDate').value,
+      endDate: $('endDate').value,
       dateRangeDays: Number($('dateRangeDays').value) || 30,
     }),
   });
@@ -159,18 +174,24 @@ $('saveBtn').addEventListener('click', async () => {
       body: JSON.stringify({ tkReach: Number(tk) }),
     });
   }
-  $('statusMsg').textContent = 'Settings saved.';
+}
+
+$('saveBtn').addEventListener('click', async () => {
+  $('statusMsg').textContent = 'Saving...';
+  await saveCurrentSettings();
+  $('statusMsg').textContent = 'Settings saved successfully ✓';
 });
 
 $('syncBtn').addEventListener('click', async () => {
-  $('statusMsg').textContent = 'Syncing…';
+  $('statusMsg').textContent = 'Saving & Syncing live campaign data…';
   try{
+    await saveCurrentSettings();
     const res = await fetch('/api/refresh', { method: 'POST' });
     const data = await res.json();
     if(data.errors && data.errors.length){
-      $('statusMsg').textContent = 'Synced with issues: ' + data.errors.join(' | ');
+      $('statusMsg').textContent = 'Sync notice: ' + data.errors.join(' | ');
     } else {
-      $('statusMsg').textContent = 'Synced ✓';
+      $('statusMsg').textContent = 'Campaign data synced successfully ✓ (Ready to view on dashboard)';
     }
   }catch(e){
     $('statusMsg').textContent = 'Sync failed: ' + e.message;

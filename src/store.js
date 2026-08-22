@@ -144,6 +144,8 @@ const store = {
     ga4PropertyId: '',
     linkedinAdAccountId: '',
     dateRangeDays: 30,
+    startDate: '',
+    endDate: '',
   }),
   saveSettings: (userId, settings) => writeJson(fileFor(userId, 'settings'), settings),
 

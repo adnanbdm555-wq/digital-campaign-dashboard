@@ -6,7 +6,11 @@ const googleService = require('./services/googleService');
 const linkedinService = require('./services/linkedinService');
 const tiktokService = require('./services/tiktokService');
 
-function dateRange(days) {
+function dateRange(settings = {}) {
+  if (settings.startDate && settings.endDate) {
+    return { since: settings.startDate, until: settings.endDate };
+  }
+  const days = settings.dateRangeDays || 30;
   const until = new Date();
   const since = new Date();
   since.setDate(since.getDate() - days);
@@ -17,7 +21,7 @@ function dateRange(days) {
 async function runSyncForUser(userId) {
   const tokens = store.getTokens(userId);
   const settings = store.getSettings(userId);
-  const { since, until } = dateRange(settings.dateRangeDays || 30);
+  const { since, until } = dateRange(settings);
   const results = {};
   const errors = [];
 
