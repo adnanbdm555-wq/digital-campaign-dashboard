@@ -38,9 +38,6 @@ async function runSyncForUser(userId, req) {
     } catch (e) {
       errors.push('Meta Ads: ' + (e.response?.data?.error?.message || e.message));
     }
-  } else {
-    if (!tokens.meta) errors.push('Meta: Facebook account not connected yet. Please click Connect Meta first.');
-    if (!settings.metaAdAccountId && !settings.metaCampaignId) errors.push('Meta: Please enter your Meta Ad Account ID or Campaign ID.');
   }
 
   // Fetch Organic Page & Content Insights if Page ID is specified
@@ -84,10 +81,11 @@ async function runSyncForUser(userId, req) {
     }
   }
 
-  if (tokens.linkedin?.access_token && settings.linkedinAdAccountId) {
+  const liToken = tokens.linkedin?.accessToken || tokens.linkedin?.access_token;
+  if (liToken && settings.linkedinAdAccountId) {
     try {
       Object.assign(results, await linkedinService.pullInsights({
-        accessToken: tokens.linkedin.access_token,
+        accessToken: liToken,
         adAccountId: settings.linkedinAdAccountId,
         since,
         until,

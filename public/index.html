@@ -139,19 +139,24 @@
     </div>
     <div class="grid2" style="margin-top:10px;">
       <div>
-        <label>TikTok Reach</label>
-        <input id="tkReach" type="number" placeholder="0">
+        <label>LinkedIn Reach Override</label>
+        <input id="liReachInput" type="number" placeholder="0">
       </div>
       <div>
-        <label>Paid Post Engagement Override <span class="hint">(Leave blank to auto-fetch from Meta)</span></label>
-        <input id="postEngagementInput" type="number" placeholder="Auto-calculated from Meta">
+        <label>TikTok Reach</label>
+        <input id="tkReach" type="number" placeholder="0">
       </div>
     </div>
     <div class="grid2" style="margin-top:10px;">
       <div>
+        <label>Paid Post Engagement Override <span class="hint">(Leave blank to auto-fetch from Meta)</span></label>
+        <input id="postEngagementInput" type="number" placeholder="Auto-calculated from Meta">
+      </div>
+      <div>
         <label>GA4 Website Sessions</label>
         <input id="gaSessionsInput" type="number" placeholder="0">
       </div>
+    </div>
       <div>
         <label>GA4 Website Users</label>
         <input id="gaUsersInput" type="number" placeholder="0">
@@ -267,6 +272,7 @@ async function loadStatus(){
     $('organicCommentsInput').value = mo.organicComments ?? (api.organicComments ?? '');
     $('organicSharesInput').value = mo.organicShares ?? (api.organicShares ?? '');
     $('organicVideoViewsInput').value = mo.organicVideoViews ?? (api.organicVideoViews ?? '');
+    $('liReachInput').value = mo.liReach ?? (api.liReach ?? '');
     $('tkReach').value = mo.tkReach ?? '';
     $('postEngagementInput').value = mo.postEngagement ?? (api.postEngagement ?? '');
     $('gaSessionsInput').value = mo.gaSessions ?? (api.gaSessions ?? '');
@@ -311,6 +317,7 @@ async function saveCurrentSettings(){
   if ($('organicCommentsInput').value !== '') manual.organicComments = Number($('organicCommentsInput').value);
   if ($('organicSharesInput').value !== '') manual.organicShares = Number($('organicSharesInput').value);
   if ($('organicVideoViewsInput').value !== '') manual.organicVideoViews = Number($('organicVideoViewsInput').value);
+  if ($('liReachInput').value !== '') manual.liReach = Number($('liReachInput').value);
   if ($('tkReach').value !== '') manual.tkReach = Number($('tkReach').value);
   if ($('postEngagementInput').value !== '') manual.postEngagement = Number($('postEngagementInput').value);
   if ($('gaSessionsInput').value !== '') manual.gaSessions = Number($('gaSessionsInput').value);
