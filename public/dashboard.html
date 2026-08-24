@@ -212,6 +212,61 @@
     align-items:center;flex-wrap:wrap;gap:10px;
   }
 
+  /* Platform Switcher Tabs */
+  .platform-nav{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 0 20px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 24px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .plat-tab{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--ink-dim);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all .2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    outline: none;
+  }
+  .plat-tab:hover{
+    background: var(--panel-2);
+    color: var(--ink);
+    border-color: var(--steel);
+  }
+  .plat-tab.active{
+    background: rgba(200,16,46,0.18);
+    color: #fff;
+    border-color: var(--red);
+    font-weight: 600;
+    box-shadow: 0 0 12px rgba(200,16,46,0.25);
+  }
+  .plat-tab[data-platform="linkedin"].active{
+    background: rgba(54,139,214,0.18);
+    border-color: #368BD6;
+    box-shadow: 0 0 12px rgba(54,139,214,0.25);
+  }
+  .plat-tab[data-platform="youtube"].active{
+    background: rgba(255,106,61,0.18);
+    border-color: #ff6a3d;
+    box-shadow: 0 0 12px rgba(255,106,61,0.25);
+  }
+  .plat-tab[data-platform="tiktok"].active{
+    background: rgba(45,212,191,0.18);
+    border-color: #2dd4bf;
+    box-shadow: 0 0 12px rgba(45,212,191,0.25);
+  }
+
   @media(max-width:820px){
     .cluster{grid-template-columns:1fr;}
     .insight-grid{grid-template-columns:1fr;}
@@ -269,6 +324,16 @@
 </div>
 
 <div class="wrap">
+
+  <!-- PLATFORM SWITCHER TABS -->
+  <div class="platform-nav" id="platformNav">
+    <span style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--steel-lt);font-weight:600;margin-right:6px;white-space:nowrap;">Platform View:</span>
+    <button class="plat-tab active" data-platform="all" onclick="switchPlatform('all')">🌐 All Channels Overview</button>
+    <button class="plat-tab" data-platform="meta" onclick="switchPlatform('meta')">🔵 Meta (Facebook &amp; Instagram)</button>
+    <button class="plat-tab" data-platform="linkedin" onclick="switchPlatform('linkedin')">💼 LinkedIn (B2B &amp; Ads)</button>
+    <button class="plat-tab" data-platform="youtube" onclick="switchPlatform('youtube')">🎥 YouTube (Video &amp; Shorts)</button>
+    <button class="plat-tab" data-platform="tiktok" onclick="switchPlatform('tiktok')">🎵 TikTok (Viral Reach)</button>
+  </div>
 
   <!-- KPI GAUGE CLUSTER -->
   <div class="section">
@@ -768,6 +833,54 @@
     }
   }
 
+  let currentPlatform = new URLSearchParams(location.search).get('platform') || 'all';
+
+  window.switchPlatform = function(platform){
+    currentPlatform = platform;
+    document.querySelectorAll('.plat-tab').forEach(btn => {
+      if(btn.getAttribute('data-platform') === platform) btn.classList.add('active');
+      else btn.classList.remove('active');
+    });
+
+    const url = new URL(location.href);
+    if(platform === 'all') url.searchParams.delete('platform');
+    else url.searchParams.set('platform', platform);
+    history.replaceState(null, '', url.toString());
+
+    // Update Eyebrow and Description branding
+    const eyebrow = document.querySelector('.eyebrow');
+    if(eyebrow){
+      if(platform === 'all') eyebrow.textContent = 'Omnichannel Analytics Report';
+      else if(platform === 'meta') eyebrow.textContent = 'Meta (Facebook & Instagram) Performance Report';
+      else if(platform === 'linkedin') eyebrow.textContent = 'LinkedIn Campaign Performance Report';
+      else if(platform === 'youtube') eyebrow.textContent = 'YouTube Video Analytics Report';
+      else if(platform === 'tiktok') eyebrow.textContent = 'TikTok Campaign Performance Report';
+    }
+
+    // Platform-specific KPI adjustment
+    if(platform === 'linkedin'){
+      const liVal = parseFloat($('liReach')?.value) || 0;
+      if(liVal > 0) $('reach').value = liVal;
+      $('reachTag').textContent = 'LinkedIn Reach';
+    } else if(platform === 'youtube'){
+      const ytVal = parseFloat($('ytReach')?.value) || 0;
+      if(ytVal > 0) $('reach').value = ytVal;
+      $('reachTag').textContent = 'YouTube Views';
+    } else if(platform === 'tiktok'){
+      const tkVal = parseFloat($('tkReach')?.value) || 0;
+      if(tkVal > 0) $('reach').value = tkVal;
+      $('reachTag').textContent = 'TikTok Reach';
+    } else if(platform === 'meta'){
+      const fbVal = (parseFloat($('fbReach')?.value) || 0) + (parseFloat($('igReach')?.value) || 0);
+      if(fbVal > 0) $('reach').value = fbVal;
+      $('reachTag').textContent = 'Meta Total Reach';
+    } else {
+      $('reachTag').textContent = 'Total Campaign Reach';
+    }
+
+    updateAll();
+  };
+
   function updateAll(){
     updateKPIGauges();
     updateGender();
@@ -784,7 +897,7 @@
   document.querySelectorAll('.locPctInput').forEach(el => el.addEventListener('input', updateLocations));
   ['organicReach','organicImpressions','organicEngagement','organicVideoViews','organicLikes','organicComments','organicShares'].forEach(id => $(id)?.addEventListener('input', updateOrganic));
 
-  updateAll();
+  switchPlatform(currentPlatform);
 
   /* =========================================================
      STATE TRACKING — UNDO / SAVE / EXPORT
@@ -1220,6 +1333,22 @@
 
       const logoUrl = window._currentLogoUrl || '';
 
+      let reportHeader = 'CLIENT ANALYTICS REPORT · ' + agencyName.toUpperCase();
+      let platformSuffix = 'Omnichannel';
+      if(currentPlatform === 'linkedin'){
+        reportHeader = 'LINKEDIN CAMPAIGN REPORT · ' + agencyName.toUpperCase();
+        platformSuffix = 'LinkedIn';
+      } else if(currentPlatform === 'meta'){
+        reportHeader = 'META (FACEBOOK & INSTAGRAM) REPORT · ' + agencyName.toUpperCase();
+        platformSuffix = 'Meta';
+      } else if(currentPlatform === 'youtube'){
+        reportHeader = 'YOUTUBE VIDEO ANALYTICS REPORT · ' + agencyName.toUpperCase();
+        platformSuffix = 'YouTube';
+      } else if(currentPlatform === 'tiktok'){
+        reportHeader = 'TIKTOK PERFORMANCE REPORT · ' + agencyName.toUpperCase();
+        platformSuffix = 'TikTok';
+      }
+
       // ==========================================
       // SLIDE 1: Title & Cover Slide
       // ==========================================
@@ -1228,7 +1357,7 @@
       
       // Top Agency Header & Red Accent Line
       slide1.addShape(pptx.ShapeType.rect, { x: 0.8, y: 0.7, w: 11.7, h: 0.04, fill: { color: RED_ACCENT } });
-      slide1.addText('CLIENT ANALYTICS REPORT · ' + agencyName.toUpperCase(), {
+      slide1.addText(reportHeader, {
         x: 0.8, y: 0.85, w: 8.5, h: 0.3,
         fontSize: 11, bold: true, color: RED_ACCENT, fontFace: 'Arial'
       });
@@ -1441,7 +1570,7 @@
         { text: `${fmt(orgShares)}`, options: { color: TEXT_MUTED } }
       ], { x: 1.1, y: 5.1, w: 11.1, h: 0.9, fontSize: 14, fontFace: 'Arial' });
 
-      const pptFilename = `${campName}_Presentation.pptx`;
+      const pptFilename = `${campName}_${platformSuffix}_Presentation.pptx`;
       await pptx.writeFile({ fileName: pptFilename });
       setStatus('PowerPoint presentation downloaded ✓', 'saved');
     } catch(err) {
