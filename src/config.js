@@ -20,5 +20,6 @@ module.exports = {
   linkedin: {
     clientId: process.env.LINKEDIN_CLIENT_ID || '7796fgme5lknej',
     clientSecret: process.env.LINKEDIN_CLIENT_SECRET || Buffer.from('V1BMX0FQMS5ZTWt0ZldLVjR4MW1PTDExLlRxVEN4QT09', 'base64').toString('utf8'),
+    accessToken: process.env.LINKEDIN_ACCESS_TOKEN || 'AQVo9C_tqLG3wKnlDqALSYcrW4SdN_ImV_ebvavwtsNMdeUIeQt5EDb28ovvPztpAQcBRbwy4aCfK2qTgRsu3aGAGmd0YGTsmoS6rXQJ5ZX70gf82S32RN4XM5kFHA7YZz8Yao4BcpWNaxw8CDRqmJFFOCXfwRSZGkJzXm6A0ZkdcrNvWlN9EEhMwzbt_WdhYE_5Fax-6dI2s_TqWXFmC-cfHpQPJhU_-gqX7a7-HqL3rGdOo0AdekjNtK3A-KTwy2LKQXhmQ1qJc9V4-PtJlk8UtlrQ0SWhmqLg8lOMaGfZVXZgOkeuIXJ4h5JryS58F66fTMROiX5Lopdf0s-tdcxhwk3quQ',
   },
 };

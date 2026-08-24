@@ -40,34 +40,42 @@ async function exchangeCodeForToken(code, redirectUri) {
  * the CPM-style proxy used for Meta's Cost Per Result when no result action type is set.
  */
 async function pullInsights({ accessToken, adAccountId, since, until }) {
-  const toDateParts = (isoDate) => {
-    const [y, m, d] = isoDate.split('-').map(Number);
-    return `(year:${y},month:${m},day:${d})`;
-  };
-  const dateRange = `(start:${toDateParts(since)},end:${toDateParts(until)})`;
-  const account = adAccountId.startsWith('urn:li:sponsoredAccount:')
-    ? adAccountId
-    : `urn:li:sponsoredAccount:${adAccountId}`;
+  if (!adAccountId || !accessToken) {
+    return {};
+  }
+  try {
+    const toDateParts = (isoDate) => {
+      const [y, m, d] = isoDate.split('-').map(Number);
+      return `(year:${y},month:${m},day:${d})`;
+    };
+    const dateRange = `(start:${toDateParts(since)},end:${toDateParts(until)})`;
+    const account = adAccountId.startsWith('urn:li:sponsoredAccount:')
+      ? adAccountId
+      : `urn:li:sponsoredAccount:${adAccountId}`;
 
-  const res = await axios.get('https://api.linkedin.com/rest/adAnalytics', {
-    params: {
-      q: 'analytics',
-      pivot: 'ACCOUNT',
-      dateRange,
-      'accounts[0]': account,
-      fields: 'impressions,clicks,costInLocalCurrency',
-    },
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'LinkedIn-Version': LI_VERSION,
-      'X-Restli-Protocol-Version': '2.0.0',
-    },
-  });
+    const res = await axios.get('https://api.linkedin.com/rest/adAnalytics', {
+      params: {
+        q: 'analytics',
+        pivot: 'ACCOUNT',
+        dateRange,
+        'accounts[0]': account,
+        fields: 'impressions,clicks,costInLocalCurrency',
+      },
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'LinkedIn-Version': LI_VERSION,
+        'X-Restli-Protocol-Version': '2.0.0',
+      },
+    });
 
-  const row = (res.data.elements || [])[0] || {};
-  return {
-    liReach: Math.round(Number(row.impressions || 0)), // proxy — see note above
-  };
+    const row = (res.data.elements || [])[0] || {};
+    return {
+      liReach: Math.round(Number(row.impressions || 0)), // proxy — see note above
+    };
+  } catch (err) {
+    console.warn('LinkedIn insights notice:', err.response?.data?.message || err.message);
+    return {};
+  }
 }
 
 module.exports = { getLoginUrl, exchangeCodeForToken, pullInsights };

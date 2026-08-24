@@ -156,11 +156,12 @@ const store = {
     const cookieGoogle = getDataFromCookie(req, 'google_token');
     const cookieLinkedin = getDataFromCookie(req, 'linkedin_token');
     const masterMeta = config.meta?.accessToken ? { accessToken: config.meta.accessToken, connectedAt: new Date().toISOString(), isMaster: true } : null;
+    const masterLinkedin = config.linkedin?.accessToken ? { accessToken: config.linkedin.accessToken, connectedAt: new Date().toISOString(), isMaster: true } : null;
     return {
       ...fileTokens,
       meta: cookieMeta || fileTokens.meta || masterMeta,
       google: cookieGoogle || fileTokens.google,
-      linkedin: cookieLinkedin || fileTokens.linkedin,
+      linkedin: cookieLinkedin || fileTokens.linkedin || masterLinkedin,
     };
   },
   saveTokens: (userId, tokens) => writeJson(fileFor(userId, 'tokens'), tokens),
