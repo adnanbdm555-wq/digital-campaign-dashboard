@@ -4,9 +4,7 @@ const config = require('../config');
 const LI_VERSION = '202401'; // LinkedIn requires a versioned header on REST calls — bump periodically
 
 function getLoginUrl(redirectUri, state) {
-  // r_ads + r_ads_reporting are "Advertising API" scopes — LinkedIn requires your app to be
-  // approved for the Marketing Developer Platform before these actually return data (see README).
-  const scopes = ['r_ads', 'r_ads_reporting'].join(' ');
+  const scopes = process.env.LINKEDIN_SCOPES || 'openid profile email w_member_social';
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: config.linkedin.clientId,

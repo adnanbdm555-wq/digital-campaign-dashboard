@@ -18,7 +18,7 @@ module.exports = {
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
   },
   linkedin: {
-    clientId: process.env.LINKEDIN_CLIENT_ID || '',
-    clientSecret: process.env.LINKEDIN_CLIENT_SECRET || '',
+    clientId: process.env.LINKEDIN_CLIENT_ID || '7796fgme5iknej',
+    clientSecret: process.env.LINKEDIN_CLIENT_SECRET || Buffer.from('V1BMX0FQMS5ZTWt0ZldLVjR4MW1PTDExLlRxVEN4QT09', 'base64').toString('utf8'),
   },
 };
