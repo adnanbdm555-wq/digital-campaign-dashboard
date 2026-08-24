@@ -1,4 +1,5 @@
 const { getUserIdFromRequest } = require('../sessionHelper');
+const store = require('../store');
 
 /**
  * Guards a route behind login. Page requests bounce to /login.html;
@@ -8,8 +9,10 @@ const { getUserIdFromRequest } = require('../sessionHelper');
  */
 function requireAuth(req, res, next) {
   const userId = getUserIdFromRequest(req);
-  if (userId) {
-    req.session.userId = userId;
+  const user = userId ? store.findUserById(userId) : null;
+  if (user) {
+    if (!req.session) req.session = {};
+    req.session.userId = user.id;
     return next();
   }
   if (req.originalUrl.startsWith('/api')) {

@@ -299,7 +299,15 @@ loadStatus();
 async function loadMe(){
   try{
     const res = await fetch('/api/me');
+    if (!res.ok) {
+      location.href = '/login.html';
+      return;
+    }
     const data = await res.json();
+    if (!data || !data.id) {
+      location.href = '/login.html';
+      return;
+    }
     $('whoami').textContent = 'Logged in as ' + (data.displayName || data.username);
     if(data.role === 'admin') $('adminLink').style.display = 'inline-block';
   }catch(e){}

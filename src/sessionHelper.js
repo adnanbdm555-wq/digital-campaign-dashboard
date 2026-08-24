@@ -2,9 +2,11 @@ const crypto = require('crypto');
 const config = require('./config');
 
 function createSessionCookie(userOrId) {
-  const userId = typeof userOrId === 'object' ? userOrId.id : userOrId;
-  const role = typeof userOrId === 'object' ? (userOrId.role || 'user') : (userId === 'admin_adpulsemedia' ? 'admin' : 'user');
-  const username = typeof userOrId === 'object' ? (userOrId.username || '') : '';
+  const store = require('./store');
+  let user = typeof userOrId === 'object' ? userOrId : store.findUserById(userOrId);
+  const userId = user ? user.id : userOrId;
+  const role = user ? (user.role || 'user') : (userId === 'admin_adpulsemedia' ? 'admin' : 'user');
+  const username = user ? (user.username || '') : '';
   const payload = Buffer.from(JSON.stringify({ userId, role, username, exp: Date.now() + 30 * 24 * 60 * 60 * 1000 })).toString('base64url');
   const signature = crypto.createHmac('sha256', config.sessionSecret).update(payload).digest('hex');
   return `session_token=${payload}.${signature}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`;
@@ -34,11 +36,15 @@ function getUserSessionFromRequest(req) {
         decoded = JSON.parse(Buffer.from(payloadStr, 'base64').toString('utf8'));
       }
       if (decoded && decoded.userId && decoded.exp > Date.now()) {
+        const store = require('./store');
+        const user = store.findUserById(decoded.userId);
+        const actualRole = user ? (user.role || 'user') : (decoded.role || 'user');
+        const actualUsername = user ? user.username : (decoded.username || '');
         if (!req.session) req.session = {};
         req.session.userId = decoded.userId;
-        req.session.role = decoded.role || (decoded.userId === 'admin_adpulsemedia' ? 'admin' : 'user');
-        req.session.username = decoded.username || '';
-        return { userId: decoded.userId, role: req.session.role, username: req.session.username };
+        req.session.role = actualRole;
+        req.session.username = actualUsername;
+        return { userId: decoded.userId, role: actualRole, username: actualUsername };
       }
     }
   } catch (e) {}
