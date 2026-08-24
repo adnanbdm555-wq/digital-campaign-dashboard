@@ -6,6 +6,9 @@
 <title>Digital Campaign Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<!-- PDF and PowerPoint Generation Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 <style>
   :root{
     --bg: #101215;
@@ -224,11 +227,20 @@
 <div class="hero">
   <div class="wrap">
     <div class="hero-top">
-      <div>
-        <div class="eyebrow">Client Analytics Report</div>
-        <h1 class="title" contenteditable="true" id="campaignName">GFS Premium Block 80 &amp; 120 Sq. yards</h1>
-        <div class="subline" contenteditable="true" id="campaignDesc">Campaign Performance Analytics — Lead generation, video views, reach efficiency and platform performance.</div>
-        <span id="lastEdited" style="display:none;"></span>
+      <div style="display:flex;align-items:flex-start;gap:18px;flex:1;flex-wrap:wrap;">
+        <div id="logoWrapper" style="position:relative;cursor:pointer;" onclick="promptLogoUrl()" title="Click to set Brand / Campaign Logo">
+          <div id="logoContainer" style="width:68px;height:68px;border-radius:6px;background:var(--panel-2);border:1.5px dashed var(--steel);display:flex;align-items:center;justify-content:center;overflow:hidden;transition:border-color .2s;">
+            <span id="logoPlaceholder" style="font-size:26px;">🏢</span>
+            <img id="brandLogoImg" src="" alt="Brand Logo" style="display:none;width:100%;height:100%;object-fit:contain;background:#fff;padding:4px;">
+          </div>
+          <span style="position:absolute;bottom:-4px;right:-4px;background:var(--red);color:#fff;border-radius:50%;width:20px;height:20px;font-size:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.5);">✎</span>
+        </div>
+        <div style="flex:1;min-width:260px;">
+          <div class="eyebrow">Client Analytics Report</div>
+          <h1 class="title" contenteditable="true" id="campaignName">GFS Premium Block 80 &amp; 120 Sq. yards</h1>
+          <div class="subline" contenteditable="true" id="campaignDesc">Campaign Performance Analytics — Lead generation, video views, reach efficiency and platform performance.</div>
+          <span id="lastEdited" style="display:none;"></span>
+        </div>
       </div>
       <div class="meta-block">
         <div class="row"><span class="label">Date Range</span><span contenteditable="true" id="dateRange">11 DEC 2024 – 15 JAN 2025</span></div>
@@ -566,13 +578,15 @@
 
 </div>
 
-<div class="save-bar">
+<div class="save-bar" id="saveBar">
   <span id="saveStatus">All changes saved</span>
   <div class="toolbar">
     <button class="tool-btn" id="syncBtn" title="Pull the latest numbers from your connected data source">⟳ Sync Live Data</button>
+    <button class="tool-btn" id="pdfBtn" style="border-color:#368BD6;color:#368BD6;font-weight:600;" title="Download clean presentation PDF">📄 Download PDF</button>
+    <button class="tool-btn" id="pptBtn" style="border-color:#d9a441;color:#d9a441;font-weight:600;" title="Download PowerPoint presentation (.pptx)">📊 Download PPT</button>
     <button class="tool-btn" id="undoBtn" title="Undo last change">↶ Undo</button>
     <button class="tool-btn save-btn" id="saveBtn" title="Save current changes">💾 Save</button>
-    <button class="tool-btn export-btn" id="exportBtn" title="Download an editable HTML copy with your current data">⭳ Export</button>
+    <button class="tool-btn export-btn" id="exportBtn" title="Download an editable HTML copy with your current data">⭳ HTML</button>
   </div>
 </div>
 
@@ -798,6 +812,44 @@
     return state;
   }
 
+  window.promptLogoUrl = function(){
+    const current = window._currentLogoUrl || '';
+    const url = prompt('Enter Brand / Campaign Logo Image URL:', current);
+    if(url !== null){
+      const trimmed = url.trim();
+      window._currentLogoUrl = trimmed;
+      renderBrandLogo(trimmed);
+      checkpoint();
+      const cacheKey = getCacheKey();
+      try {
+        const cached = JSON.parse(localStorage.getItem(cacheKey) || '{}');
+        cached.campaignLogoUrl = trimmed;
+        localStorage.setItem(cacheKey, JSON.stringify(cached));
+      } catch(e){}
+      fetch('/api/manual', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ campaignLogoUrl: trimmed })
+      }).catch(()=>{});
+    }
+  };
+
+  function renderBrandLogo(url){
+    window._currentLogoUrl = url || '';
+    const img = $('brandLogoImg');
+    const placeholder = $('logoPlaceholder');
+    if(!img || !placeholder) return;
+    if(url && url.trim()){
+      img.src = url.trim();
+      img.style.display = 'block';
+      placeholder.style.display = 'none';
+    } else {
+      img.src = '';
+      img.style.display = 'none';
+      placeholder.style.display = 'block';
+    }
+  }
+
   window.promptMediaUrl = function(){
     const current = window._currentCreativeUrl || '';
     const url = prompt('Enter Video (YouTube / MP4) or Image URL:', current);
@@ -896,6 +948,7 @@
         if(pctEl) pctEl.value = state['locPct' + i];
       }
     }
+    renderBrandLogo(state.campaignLogoUrl);
     renderCreativeMedia(state.creativeMediaUrl, state.campaignName, state.campaignDesc);
     FIELD_IDS.forEach(id => { const el = $(id); if(el && state[id] !== undefined) el.value = state[id]; });
     TEXT_IDS.forEach(id => { const el = $(id); if(el && state[id] !== undefined) el.textContent = state[id]; });
@@ -1091,6 +1144,307 @@
     dirty = false;
     setStatus('Exported ✓ file downloaded', 'saved');
   });
+
+  // ---- Export PDF ----
+  async function exportToPDF() {
+    setStatus('Preparing PDF report...', 'unsaved');
+    try {
+      const campName = ($('campaignName')?.textContent || 'Campaign_Report').trim().replace(/[^a-z0-9]+/gi, '_');
+      const filename = `${campName}_Analytics_Report.pdf`;
+      const saveBar = $('saveBar');
+
+      if (window.html2pdf) {
+        if (saveBar) saveBar.style.display = 'none';
+        const opt = {
+          margin: [8, 8, 8, 8],
+          filename: filename,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#101215' },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        await html2pdf().set(opt).from(document.body).save();
+        if (saveBar) saveBar.style.display = '';
+        setStatus('PDF report downloaded ✓', 'saved');
+      } else {
+        window.print();
+        setStatus('Print to PDF ready', 'saved');
+      }
+    } catch(err) {
+      console.error('PDF export error:', err);
+      if ($('saveBar')) $('saveBar').style.display = '';
+      window.print();
+    }
+  }
+  $('pdfBtn')?.addEventListener('click', exportToPDF);
+
+  // ---- Export PowerPoint (.pptx) ----
+  async function exportToPPT() {
+    setStatus('Generating PowerPoint (.pptx)...', 'unsaved');
+    try {
+      if (typeof PptxGenJS === 'undefined') {
+        throw new Error('PowerPoint library is loading, please try again in a few seconds.');
+      }
+      const pptx = new PptxGenJS();
+      pptx.layout = 'LAYOUT_16x9';
+
+      const BG_DARK = '101215';
+      const PANEL_BG = '1A1D22';
+      const PANEL_2 = '20242B';
+      const RED_ACCENT = 'C8102E';
+      const TEXT_WHITE = 'F3F1EA';
+      const TEXT_MUTED = '9AA1AB';
+      const GOOD_GREEN = '4FAE7A';
+
+      const campName = ($('campaignName')?.textContent || 'Digital Campaign Report').trim();
+      const campDesc = ($('campaignDesc')?.textContent || 'Performance Analytics Report').trim();
+      const dateRangeStr = ($('dateRange')?.textContent || '').trim();
+      const agencyName = ($('agency')?.textContent || 'AdPulse IMC').trim();
+      const clientName = ($('client')?.textContent || '').trim();
+
+      // Extract high-res video thumbnail or creative image URL
+      let mediaThumbUrl = window._currentCreativeUrl || '';
+      if (mediaThumbUrl.includes('youtube.com') || mediaThumbUrl.includes('youtu.be')) {
+        let ytId = '';
+        if (mediaThumbUrl.includes('youtu.be/')) ytId = mediaThumbUrl.split('youtu.be/')[1].split('?')[0];
+        else if (mediaThumbUrl.includes('v=')) {
+          const params = new URLSearchParams(mediaThumbUrl.split('?')[1] || '');
+          ytId = params.get('v') || mediaThumbUrl.split('v=')[1].split('&')[0];
+        }
+        if (ytId) mediaThumbUrl = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+      }
+
+      const logoUrl = window._currentLogoUrl || '';
+
+      // ==========================================
+      // SLIDE 1: Title & Cover Slide
+      // ==========================================
+      const slide1 = pptx.addSlide();
+      slide1.background = { color: BG_DARK };
+      
+      // Top Agency Header & Red Accent Line
+      slide1.addShape(pptx.ShapeType.rect, { x: 0.8, y: 0.7, w: 11.7, h: 0.04, fill: { color: RED_ACCENT } });
+      slide1.addText('CLIENT ANALYTICS REPORT · ' + agencyName.toUpperCase(), {
+        x: 0.8, y: 0.85, w: 8.5, h: 0.3,
+        fontSize: 11, bold: true, color: RED_ACCENT, fontFace: 'Arial'
+      });
+
+      // Campaign Title
+      slide1.addText(campName, {
+        x: 0.8, y: 1.25, w: 7.2, h: 1.4,
+        fontSize: 26, bold: true, color: TEXT_WHITE, fontFace: 'Arial'
+      });
+
+      // Subtitle / Description
+      slide1.addText(campDesc, {
+        x: 0.8, y: 2.7, w: 7.2, h: 0.9,
+        fontSize: 12.5, color: TEXT_MUTED, fontFace: 'Arial'
+      });
+
+      // Details Panel
+      slide1.addShape(pptx.ShapeType.rect, {
+        x: 0.8, y: 3.8, w: 7.2, h: 2.8,
+        fill: { color: PANEL_BG }, line: { color: '2C3038', width: 1 }
+      });
+      slide1.addText([
+        { text: 'CAMPAIGN OVERVIEW\n\n', options: { bold: true, color: RED_ACCENT, fontSize: 11 } },
+        { text: '• Date Range: ', options: { bold: true, color: TEXT_WHITE, fontSize: 13 } },
+        { text: dateRangeStr + '\n', options: { color: TEXT_MUTED, fontSize: 13 } },
+        { text: '• Report For: ', options: { bold: true, color: TEXT_WHITE, fontSize: 13 } },
+        { text: clientName + '\n', options: { color: TEXT_MUTED, fontSize: 13 } },
+        { text: '• Prepared By: ', options: { bold: true, color: TEXT_WHITE, fontSize: 13 } },
+        { text: agencyName, options: { color: TEXT_MUTED, fontSize: 13 } },
+      ], { x: 1.1, y: 4.0, w: 6.6, h: 2.4, fontFace: 'Arial' });
+
+      // Creative Image or Video Thumbnail on Right Side of Slide 1
+      if (mediaThumbUrl && (mediaThumbUrl.startsWith('http') || mediaThumbUrl.startsWith('data:'))) {
+        try {
+          slide1.addImage({ path: mediaThumbUrl, x: 8.3, y: 1.25, w: 4.2, h: 5.35, sizing: { type: 'contain', w: 4.2, h: 5.35 } });
+        } catch(e) {}
+      } else {
+        slide1.addShape(pptx.ShapeType.rect, { x: 8.3, y: 1.25, w: 4.2, h: 5.35, fill: { color: PANEL_2 }, line: { color: '2C3038', width: 1 } });
+        slide1.addText('🎬\n\nCampaign Creative\nMedia Asset', { x: 8.3, y: 3.0, w: 4.2, h: 2.0, align: 'center', fontSize: 14, color: TEXT_MUTED });
+      }
+
+      // Brand Logo on Cover Slide
+      if (logoUrl && (logoUrl.startsWith('http') || logoUrl.startsWith('data:'))) {
+        try {
+          slide1.addImage({ path: logoUrl, x: 11.2, y: 0.85, w: 1.3, h: 0.8, sizing: { type: 'contain', w: 1.3, h: 0.8 } });
+        } catch(e) {}
+      }
+
+      // ==========================================
+      // SLIDE 2: Key Metrics & Primary Performance
+      // ==========================================
+      const slide2 = pptx.addSlide();
+      slide2.background = { color: BG_DARK };
+      slide2.addShape(pptx.ShapeType.rect, { x: 0.8, y: 0.6, w: 11.7, h: 0.04, fill: { color: RED_ACCENT } });
+      slide2.addText('01 · KEY PERFORMANCE INDICATORS', { x: 0.8, y: 0.75, w: 10, h: 0.4, fontSize: 18, bold: true, color: TEXT_WHITE });
+      
+      const reachVal = $('reach')?.value || '0';
+      const spendVal = $('spend')?.value || '0';
+      const cprVal = $('cpr')?.value || '0';
+      const postEngVal = $('postEngagement')?.value || '0';
+
+      const kpis = [
+        { title: 'TOTAL REACH', value: fmt(reachVal), sub: 'Unique People Reached', color: RED_ACCENT },
+        { title: 'TOTAL AD SPEND', value: 'Rs ' + fmt(spendVal), sub: 'Budget Utilized (PKR)', color: RED_ACCENT },
+        { title: 'COST PER RESULT', value: 'Rs ' + fmt(cprVal, 2), sub: 'Cost Efficiency (CPR)', color: GOOD_GREEN },
+        { title: 'POST ENGAGEMENT', value: fmt(postEngVal), sub: 'Campaign Interactions', color: RED_ACCENT }
+      ];
+
+      kpis.forEach((kpi, idx) => {
+        const x = 0.8 + (idx * 2.95);
+        slide2.addShape(pptx.ShapeType.rect, {
+          x, y: 1.6, w: 2.8, h: 4.8,
+          fill: { color: PANEL_BG }, line: { color: '2C3038', width: 1 }
+        });
+        slide2.addText(kpi.title, { x, y: 2.0, w: 2.8, h: 0.4, fontSize: 11, bold: true, color: TEXT_MUTED, align: 'center' });
+        slide2.addText(kpi.value, { x, y: 2.8, w: 2.8, h: 1.2, fontSize: 22, bold: true, color: kpi.color, align: 'center' });
+        slide2.addText(kpi.sub, { x, y: 4.4, w: 2.8, h: 0.6, fontSize: 11.5, color: TEXT_MUTED, align: 'center' });
+      });
+
+      // ==========================================
+      // SLIDE 3: Demographics (Gender & Age)
+      // ==========================================
+      const slide3 = pptx.addSlide();
+      slide3.background = { color: BG_DARK };
+      slide3.addShape(pptx.ShapeType.rect, { x: 0.8, y: 0.6, w: 11.7, h: 0.04, fill: { color: RED_ACCENT } });
+      slide3.addText('02 · AUDIENCE DEMOGRAPHICS (GENDER & AGE)', { x: 0.8, y: 0.75, w: 10, h: 0.4, fontSize: 18, bold: true, color: TEXT_WHITE });
+      
+      const menPct = $('menShare')?.textContent || '0%';
+      const womenPct = $('womenShare')?.textContent || '0%';
+      const menReach = $('menReach')?.value || '0';
+      const womenReach = $('womenReach')?.value || '0';
+      const menSpend = $('menSpend')?.value || '0';
+      const womenSpend = $('womenSpend')?.value || '0';
+
+      // Gender Card
+      slide3.addShape(pptx.ShapeType.rect, { x: 0.8, y: 1.5, w: 5.7, h: 4.9, fill: { color: PANEL_BG }, line: { color: '2C3038', width: 1 } });
+      slide3.addText('GENDER DISTRIBUTION', { x: 1.1, y: 1.8, w: 5.1, h: 0.35, fontSize: 13, bold: true, color: RED_ACCENT });
+      slide3.addText([
+        { text: '• Men Reach: ', options: { bold: true, color: TEXT_WHITE } },
+        { text: `${fmt(menReach)} (${menPct})\n`, options: { color: TEXT_MUTED } },
+        { text: '• Men Ad Spend: ', options: { bold: true, color: TEXT_WHITE } },
+        { text: `Rs ${fmt(menSpend)}\n\n`, options: { color: TEXT_MUTED } },
+        { text: '• Women Reach: ', options: { bold: true, color: TEXT_WHITE } },
+        { text: `${fmt(womenReach)} (${womenPct})\n`, options: { color: TEXT_MUTED } },
+        { text: '• Women Ad Spend: ', options: { bold: true, color: TEXT_WHITE } },
+        { text: `Rs ${fmt(womenSpend)}`, options: { color: TEXT_MUTED } }
+      ], { x: 1.1, y: 2.4, w: 5.1, h: 3.5, fontSize: 13, fontFace: 'Arial' });
+
+      // Age Distribution Card
+      slide3.addShape(pptx.ShapeType.rect, { x: 6.8, y: 1.5, w: 5.7, h: 4.9, fill: { color: PANEL_BG }, line: { color: '2C3038', width: 1 } });
+      slide3.addText('AGE SPEND DISTRIBUTION', { x: 7.1, y: 1.8, w: 5.1, h: 0.35, fontSize: 13, bold: true, color: RED_ACCENT });
+      const age0 = $('ageSpend0')?.value || '0';
+      const age1 = $('ageSpend1')?.value || '0';
+      const age2 = $('ageSpend2')?.value || '0';
+      const age3 = $('ageSpend3')?.value || '0';
+      slide3.addText([
+        { text: '• Age 25–34: ', options: { bold: true, color: TEXT_WHITE } },
+        { text: `Rs ${fmt(age0)}  (${ $('agePct0')?.textContent || '' })\n\n`, options: { color: TEXT_MUTED } },
+        { text: '• Age 35–44: ', options: { bold: true, color: TEXT_WHITE } },
+        { text: `Rs ${fmt(age1)}  (${ $('agePct1')?.textContent || '' })\n\n`, options: { color: TEXT_MUTED } },
+        { text: '• Age 45–54: ', options: { bold: true, color: TEXT_WHITE } },
+        { text: `Rs ${fmt(age2)}  (${ $('agePct2')?.textContent || '' })\n\n`, options: { color: TEXT_MUTED } },
+        { text: '• Age 55+: ', options: { bold: true, color: TEXT_WHITE } },
+        { text: `Rs ${fmt(age3)}  (${ $('agePct3')?.textContent || '' })`, options: { color: TEXT_MUTED } }
+      ], { x: 7.1, y: 2.4, w: 5.1, h: 3.5, fontSize: 13, fontFace: 'Arial' });
+
+      // ==========================================
+      // SLIDE 4: Multi-Channel Platform & GA4 Traffic
+      // ==========================================
+      const slide4 = pptx.addSlide();
+      slide4.background = { color: BG_DARK };
+      slide4.addShape(pptx.ShapeType.rect, { x: 0.8, y: 0.6, w: 11.7, h: 0.04, fill: { color: RED_ACCENT } });
+      slide4.addText('03 · PLATFORM REACH & WEBSITE TRAFFIC', { x: 0.8, y: 0.75, w: 10, h: 0.4, fontSize: 18, bold: true, color: TEXT_WHITE });
+      
+      const platforms = [
+        { name: 'Facebook', reach: $('fbReach')?.value || '0', share: $('fbShare')?.textContent || '0%' },
+        { name: 'Instagram', reach: $('igReach')?.value || '0', share: $('igShare')?.textContent || '0%' },
+        { name: 'TikTok', reach: $('tkReach')?.value || '0', share: $('tkShare')?.textContent || '0%' },
+        { name: 'YouTube', reach: $('ytReach')?.value || '0', share: $('ytShare')?.textContent || '0%' },
+        { name: 'LinkedIn', reach: $('liReach')?.value || '0', share: $('liShare')?.textContent || '0%' },
+      ];
+      
+      const tableData = [
+        ['Platform', 'Reach', 'Share'].map(t => ({ text: t, options: { bold: true, color: TEXT_WHITE, fill: { color: RED_ACCENT } } })),
+        ...platforms.map(p => [
+          { text: p.name, options: { color: TEXT_WHITE, fill: { color: PANEL_BG } } },
+          { text: fmt(p.reach), options: { color: TEXT_WHITE, fill: { color: PANEL_BG } } },
+          { text: p.share, options: { color: TEXT_WHITE, bold: true, fill: { color: PANEL_BG } } }
+        ])
+      ];
+      slide4.addTable(tableData, { x: 0.8, y: 1.5, w: 5.8, h: 3.5, fontSize: 12, border: { color: '2C3038', pt: 1 } });
+
+      // GA4 Card
+      slide4.addShape(pptx.ShapeType.rect, { x: 7.0, y: 1.5, w: 5.5, h: 4.8, fill: { color: PANEL_BG }, line: { color: '2C3038', width: 1 } });
+      slide4.addText('GOOGLE ANALYTICS 4 (GA4)', { x: 7.3, y: 1.8, w: 4.9, h: 0.35, fontSize: 13, bold: true, color: GOOD_GREEN });
+      slide4.addText([
+        { text: '• Website Sessions: ', options: { bold: true, color: TEXT_WHITE } },
+        { text: `${fmt($('gaSessions')?.value || 0)}\n\n`, options: { color: TEXT_MUTED } },
+        { text: '• Active Users: ', options: { bold: true, color: TEXT_WHITE } },
+        { text: `${fmt($('gaUsers')?.value || 0)}\n\n`, options: { color: TEXT_MUTED } },
+        { text: '• Conversions / Goals: ', options: { bold: true, color: TEXT_WHITE } },
+        { text: `${fmt($('gaConversions')?.value || 0)}\n\n`, options: { color: TEXT_MUTED } },
+        { text: '• GA4 Property ID: ', options: { bold: true, color: TEXT_WHITE } },
+        { text: 'Configured & synced', options: { color: TEXT_MUTED } }
+      ], { x: 7.3, y: 2.4, w: 4.9, h: 3.5, fontSize: 13, fontFace: 'Arial' });
+
+      // ==========================================
+      // SLIDE 5: Organic Content & Social Insights
+      // ==========================================
+      const slide5 = pptx.addSlide();
+      slide5.background = { color: BG_DARK };
+      slide5.addShape(pptx.ShapeType.rect, { x: 0.8, y: 0.6, w: 11.7, h: 0.04, fill: { color: RED_ACCENT } });
+      slide5.addText('04 · ORGANIC SOCIAL & CONTENT PERFORMANCE', { x: 0.8, y: 0.75, w: 10, h: 0.4, fontSize: 18, bold: true, color: TEXT_WHITE });
+
+      const orgReach = $('organicReach')?.value || '0';
+      const orgImp = $('organicImpressions')?.value || '0';
+      const orgEng = $('organicEngagement')?.value || '0';
+      const orgVideoViews = $('organicVideoViews')?.value || '0';
+      const orgLikes = $('organicLikes')?.value || '0';
+      const orgComments = $('organicComments')?.value || '0';
+      const orgShares = $('organicShares')?.value || '0';
+
+      const orgKpis = [
+        { title: 'ORGANIC REACH', value: fmt(orgReach), sub: 'Non-Paid Audience', color: GOOD_GREEN },
+        { title: 'ORGANIC VIEWS', value: fmt(orgImp), sub: 'Total Content Views', color: GOOD_GREEN },
+        { title: 'TOTAL ENGAGEMENTS', value: fmt(orgEng), sub: 'Audience Interactions', color: GOOD_GREEN },
+        { title: 'REELS / VIDEO VIEWS', value: fmt(orgVideoViews), sub: 'Organic Video Plays', color: GOOD_GREEN }
+      ];
+
+      orgKpis.forEach((kpi, idx) => {
+        const x = 0.8 + (idx * 2.95);
+        slide5.addShape(pptx.ShapeType.rect, {
+          x, y: 1.5, w: 2.8, h: 2.5,
+          fill: { color: PANEL_BG }, line: { color: '2C3038', width: 1 }
+        });
+        slide5.addText(kpi.title, { x, y: 1.7, w: 2.8, h: 0.3, fontSize: 10, bold: true, color: TEXT_MUTED, align: 'center' });
+        slide5.addText(kpi.value, { x, y: 2.2, w: 2.8, h: 0.8, fontSize: 20, bold: true, color: kpi.color, align: 'center' });
+        slide5.addText(kpi.sub, { x, y: 3.1, w: 2.8, h: 0.4, fontSize: 11, color: TEXT_MUTED, align: 'center' });
+      });
+
+      // Bottom Engagement Breakdown Card
+      slide5.addShape(pptx.ShapeType.rect, { x: 0.8, y: 4.3, w: 11.7, h: 2.1, fill: { color: PANEL_BG }, line: { color: '2C3038', width: 1 } });
+      slide5.addText('ORGANIC ENGAGEMENT BREAKDOWN', { x: 1.1, y: 4.5, w: 5.0, h: 0.3, fontSize: 12, bold: true, color: GOOD_GREEN });
+      slide5.addText([
+        { text: `• Likes & Reactions: `, options: { bold: true, color: TEXT_WHITE } },
+        { text: `${fmt(orgLikes)}   |   `, options: { color: TEXT_MUTED } },
+        { text: `• Comments: `, options: { bold: true, color: TEXT_WHITE } },
+        { text: `${fmt(orgComments)}   |   `, options: { color: TEXT_MUTED } },
+        { text: `• Shares & Saves: `, options: { bold: true, color: TEXT_WHITE } },
+        { text: `${fmt(orgShares)}`, options: { color: TEXT_MUTED } }
+      ], { x: 1.1, y: 5.1, w: 11.1, h: 0.9, fontSize: 14, fontFace: 'Arial' });
+
+      const pptFilename = `${campName}_Presentation.pptx`;
+      await pptx.writeFile({ fileName: pptFilename });
+      setStatus('PowerPoint presentation downloaded ✓', 'saved');
+    } catch(err) {
+      console.error('PowerPoint export error:', err);
+      setStatus('PPT Export notice: ' + err.message, 'unsaved');
+    }
+  }
+  $('pptBtn')?.addEventListener('click', exportToPPT);
 
   // Reset
   const originalHTML = document.body.innerHTML;

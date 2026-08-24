@@ -169,6 +169,8 @@
     <input id="campaignNameInput" placeholder="Auto-detected from Meta campaign">
     <label>Campaign Description / Ad Copy <span class="hint">(Leave blank to auto-detect ad text)</span></label>
     <input id="campaignDescInput" placeholder="Auto-detected from Meta ad message / copy">
+    <label>Campaign / Brand Logo URL <span class="hint">(Paste Image URL for PDF &amp; PPT Report Cover)</span></label>
+    <input id="campaignLogoUrlInput" placeholder="https://example.com/brand-logo.png">
     <label>Campaign Creative / Video URL <span class="hint">(Auto-detected video/image from Meta, or paste YouTube/MP4/Image link)</span></label>
     <input id="creativeMediaUrlInput" placeholder="Auto-detected from Meta ad creative video or image">
   </div>
@@ -253,6 +255,7 @@ async function loadStatus(){
     $('linkedinAdAccountId').value = s.linkedinAdAccountId || '';
     $('campaignNameInput').value = s.campaignName || api.campaignName || '';
     $('campaignDescInput').value = s.campaignDesc || api.campaignDesc || '';
+    $('campaignLogoUrlInput').value = s.campaignLogoUrl || api.campaignLogoUrl || '';
     $('creativeMediaUrlInput').value = s.creativeMediaUrl || api.creativeMediaUrl || '';
     $('startDate').value = s.startDate || '';
     $('endDate').value = s.endDate || '';
@@ -294,6 +297,7 @@ async function saveCurrentSettings(){
       linkedinAdAccountId: $('linkedinAdAccountId').value.trim(),
       campaignName: $('campaignNameInput').value.trim(),
       campaignDesc: $('campaignDescInput').value.trim(),
+      campaignLogoUrl: $('campaignLogoUrlInput').value.trim(),
       creativeMediaUrl: $('creativeMediaUrlInput').value.trim(),
       startDate: $('startDate').value,
       endDate: $('endDate').value,

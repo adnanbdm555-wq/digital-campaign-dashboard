@@ -180,6 +180,7 @@ const store = {
       endDate: '',
       campaignName: '',
       campaignDesc: '',
+      campaignLogoUrl: '',
       creativeMediaUrl: '',
     };
     const fileSettings = readJson(fileFor(userId, 'settings'), defaults);
@@ -211,6 +212,7 @@ const store = {
     return {
       campaignName: overrides.campaignName || settings.campaignName || apiData.campaignName || '',
       campaignDesc: overrides.campaignDesc || settings.campaignDesc || apiData.campaignDesc || '',
+      campaignLogoUrl: overrides.campaignLogoUrl || settings.campaignLogoUrl || apiData.campaignLogoUrl || '',
       creativeMediaUrl: overrides.creativeMediaUrl || settings.creativeMediaUrl || apiData.creativeMediaUrl || '',
       startDate: settings.startDate || apiData.startDate || '',
       endDate: settings.endDate || apiData.endDate || '',
