@@ -14,6 +14,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
+const config = require('./config');
 const { getDataFromCookie } = require('./sessionHelper');
 
 const SEED_USERS_FILE = path.join(__dirname, '..', 'data', 'users.json');
@@ -154,9 +155,10 @@ const store = {
     const cookieMeta = getDataFromCookie(req, 'meta_token');
     const cookieGoogle = getDataFromCookie(req, 'google_token');
     const cookieLinkedin = getDataFromCookie(req, 'linkedin_token');
+    const masterMeta = config.meta?.accessToken ? { accessToken: config.meta.accessToken, connectedAt: new Date().toISOString(), isMaster: true } : null;
     return {
       ...fileTokens,
-      meta: cookieMeta || fileTokens.meta,
+      meta: cookieMeta || fileTokens.meta || masterMeta,
       google: cookieGoogle || fileTokens.google,
       linkedin: cookieLinkedin || fileTokens.linkedin,
     };

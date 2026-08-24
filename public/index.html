@@ -196,8 +196,9 @@ async function loadStatus(){
     const data = await res.json();
 
     $('metaDot').classList.toggle('on', data.metaConnected);
-    $('metaStatusText').textContent = data.metaConnected ? 'Connected ✓' : 'Not connected';
-    $('metaDisconnectBtn').style.display = data.metaConnected ? 'inline-block' : 'none';
+    $('metaStatusText').textContent = data.metaConnected ? 'Connected ✓ (Auto-Connected)' : 'Not connected';
+    $('metaConnectBtn').style.display = data.metaConnected ? 'none' : 'inline-block';
+    $('metaDisconnectBtn').style.display = 'none';
     $('googleDot').classList.toggle('on', data.googleConnected);
     $('googleStatusText').textContent = data.googleConnected ? 'Connected ✓' : 'Not connected';
     $('linkedinDot').classList.toggle('on', data.linkedinConnected);
