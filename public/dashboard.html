@@ -407,16 +407,16 @@
           <circle id="donutTk" cx="100" cy="100" r="72" fill="none" stroke="#2dd4bf" stroke-width="26" stroke-dasharray="452" stroke-dashoffset="0" transform="rotate(-90 100 100)"/>
           <circle id="donutYt" cx="100" cy="100" r="72" fill="none" stroke="#ff6a3d" stroke-width="26" stroke-dasharray="452" stroke-dashoffset="0" transform="rotate(-90 100 100)"/>
           <circle id="donutLi" cx="100" cy="100" r="72" fill="none" stroke="#368BD6" stroke-width="26" stroke-dasharray="452" stroke-dashoffset="0" transform="rotate(-90 100 100)"/>
-          <text x="100" y="96" text-anchor="middle" fill="#f3f1ea" font-family="JetBrains Mono" font-size="20" font-weight="700" id="donutCenterPct">96%</text>
-          <text x="100" y="114" text-anchor="middle" fill="#9aa1ab" font-family="Inter" font-size="10" letter-spacing="1" id="donutCenterLabel">FACEBOOK</text>
+          <text x="100" y="96" text-anchor="middle" fill="#f3f1ea" font-family="JetBrains Mono" font-size="20" font-weight="700" id="donutCenterPct">0%</text>
+          <text x="100" y="114" text-anchor="middle" fill="#9aa1ab" font-family="Inter" font-size="10" letter-spacing="1" id="donutCenterLabel">CHANNELS</text>
         </svg>
       </div>
       <table class="data">
         <thead><tr><th>Platform</th><th>Reach</th><th>Share</th></tr></thead>
         <tbody>
-          <tr><td><span class="swatch" style="background:var(--red);"></span>Facebook</td><td class="num"><input type="number" class="platReach" id="fbReach" value="550000"></td><td class="num" id="fbShare">96.0%</td></tr>
-          <tr><td><span class="swatch" style="background:var(--steel-lt);"></span>Instagram</td><td class="num"><input type="number" class="platReach" id="igReach" value="18000"></td><td class="num" id="igShare">3.5%</td></tr>
-          <tr><td><span class="swatch" style="background:var(--amber);"></span>Messenger / Threads</td><td class="num"><input type="number" class="platReach" id="msReach" value="1900"></td><td class="num" id="msShare">0.5%</td></tr>
+          <tr><td><span class="swatch" style="background:var(--red);"></span>Facebook</td><td class="num"><input type="number" class="platReach" id="fbReach" value="0"></td><td class="num" id="fbShare">0.0%</td></tr>
+          <tr><td><span class="swatch" style="background:var(--steel-lt);"></span>Instagram</td><td class="num"><input type="number" class="platReach" id="igReach" value="0"></td><td class="num" id="igShare">0.0%</td></tr>
+          <tr><td><span class="swatch" style="background:var(--amber);"></span>Messenger / Threads</td><td class="num"><input type="number" class="platReach" id="msReach" value="0"></td><td class="num" id="msShare">0.0%</td></tr>
           <tr><td><span class="swatch" style="background:var(--tiktok);"></span>TikTok</td><td class="num"><input type="number" class="platReach" id="tkReach" value="0"></td><td class="num" id="tkShare">0.0%</td></tr>
           <tr><td><span class="swatch" style="background:var(--youtube);"></span>YouTube</td><td class="num"><input type="number" class="platReach" id="ytReach" value="0"></td><td class="num" id="ytShare">0.0%</td></tr>
           <tr><td><span class="swatch" style="background:var(--linkedin);"></span>LinkedIn</td><td class="num"><input type="number" class="platReach" id="liReach" value="0"></td><td class="num" id="liShare">0.0%</td></tr>
@@ -720,9 +720,14 @@
       offset += len;
       if(vals[i] > vals[topIdx]) topIdx = i;
     });
-    const topPct = total ? vals[topIdx]/total : 0;
-    $('donutCenterPct').textContent = fmt(topPct*100,0)+'%';
-    $('donutCenterLabel').textContent = PLATFORMS[topIdx].label;
+    if(total === 0){
+      $('donutCenterPct').textContent = '0%';
+      $('donutCenterLabel').textContent = 'CHANNELS';
+    } else {
+      const topPct = vals[topIdx]/total;
+      $('donutCenterPct').textContent = fmt(topPct*100,0)+'%';
+      $('donutCenterLabel').textContent = PLATFORMS[topIdx].label;
+    }
   }
 
   function updateLocations(){
