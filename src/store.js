@@ -16,6 +16,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const { getDataFromCookie } = require('./sessionHelper');
 
+const SEED_USERS_FILE = path.join(__dirname, '..', 'data', 'users.json');
 const DATA_DIR = process.env.VERCEL ? path.join('/tmp', 'data') : path.join(__dirname, '..', 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const USER_DATA_DIR = path.join(DATA_DIR, 'user-data');
@@ -64,7 +65,14 @@ const DEFAULT_ADMIN = {
 
 // ---- Accounts ----
 function getUsers() {
-  const list = readJson(USERS_FILE, []);
+  const seedList = readJson(SEED_USERS_FILE, []);
+  const runtimeList = USERS_FILE !== SEED_USERS_FILE ? readJson(USERS_FILE, []) : [];
+  
+  const userMap = new Map();
+  seedList.forEach(u => { if (u && u.username) userMap.set(u.username.toLowerCase(), u); });
+  runtimeList.forEach(u => { if (u && u.username) userMap.set(u.username.toLowerCase(), u); });
+
+  const list = Array.from(userMap.values());
   if (!list.some((u) => u.username?.toLowerCase() === 'adpulsemedia' || u.id === 'admin_adpulsemedia')) {
     list.unshift(DEFAULT_ADMIN);
   }

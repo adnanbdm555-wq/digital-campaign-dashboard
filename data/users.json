@@ -1,0 +1,18 @@
+[
+  {
+    "id": "66627f7cec30105a",
+    "username": "adpulsemedia",
+    "passwordHash": "$2a$10$uCCNSC39MmB0cGb87Yyn.OPdOTgp8ofA0eMB5u9n/aefKbH6fkyx6",
+    "displayName": "Adnan Karim",
+    "role": "admin",
+    "createdAt": "2026-08-20T12:28:16.064Z"
+  },
+  {
+    "id": "staff_adpulsefahim",
+    "username": "adpulsefahim",
+    "passwordHash": "$2a$10$cDsLjZdX86eZy7bF9Mox2Oajrb7nMmOXjdny8XEYOQQtnRTMyoHuG",
+    "displayName": "AdPulse Fahim",
+    "role": "user",
+    "createdAt": "2026-08-24T12:38:00.000Z"
+  }
+]
