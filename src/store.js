@@ -169,6 +169,8 @@ const store = {
     const defaults = {
       metaAdAccountId: '',
       metaCampaignId: '',
+      metaPageId: '',
+      instagramAccountId: '',
       metaResultActionType: '', // e.g. 'lead', 'purchase', 'link_click' — blank uses a CPM-style proxy instead
       youtubeChannelId: 'MINE', // 'MINE' works once the channel owner has connected via /auth/google
       ga4PropertyId: '',

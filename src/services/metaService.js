@@ -369,4 +369,86 @@ async function pullInsights({ accessToken, adAccountId, metaCampaignId, resultAc
   return out;
 }
 
-module.exports = { getLoginUrl, exchangeCodeForToken, exchangeForLongLivedToken, pullInsights, fetchCampaignAndCreative };
+/**
+ * Fetches Organic Page Insights (Organic Reach, Impressions, Post Likes, Comments, Shares, and Recent Top Posts)
+ */
+async function fetchOrganicInsights({ accessToken, pageId, since, until }) {
+  if (!pageId || !accessToken) return {};
+  const page = pageId.replace(/^act_/, '').trim();
+  const out = {};
+
+  const get = async (url, params = {}) => {
+    try {
+      const res = await axios.get(url, { params: { access_token: accessToken, ...params } });
+      return res.data;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  try {
+    // 1. Page Insights
+    const pageInsights = await get(`${GRAPH}/${page}/insights`, {
+      metric: 'page_impressions_organic_unique,page_post_engagements,page_views_total',
+      period: 'total_over_range',
+      since: since || undefined,
+      until: until || undefined,
+    });
+
+    if (pageInsights?.data) {
+      pageInsights.data.forEach((m) => {
+        const val = m.values?.[0]?.value || 0;
+        if (m.name === 'page_impressions_organic_unique') out.organicReach = Math.round(Number(val));
+        if (m.name === 'page_post_engagements') out.organicEngagement = Math.round(Number(val));
+        if (m.name === 'page_views_total') out.organicPageViews = Math.round(Number(val));
+      });
+    }
+
+    // 2. Fetch Recent Published Posts with engagement breakdown
+    const postsRes = await get(`${GRAPH}/${page}/published_posts`, {
+      fields: 'id,message,created_time,full_picture,permalink_url,shares,comments.summary(true).limit(0),reactions.summary(true).limit(0)',
+      limit: 10,
+    });
+
+    if (postsRes?.data && Array.isArray(postsRes.data)) {
+      let totalLikes = 0;
+      let totalComments = 0;
+      let totalShares = 0;
+
+      const topPosts = postsRes.data.map((p) => {
+        const likes = p.reactions?.summary?.total_count || 0;
+        const comments = p.comments?.summary?.total_count || 0;
+        const shares = p.shares?.count || 0;
+        totalLikes += likes;
+        totalComments += comments;
+        totalShares += shares;
+
+        return {
+          id: p.id,
+          message: p.message ? (p.message.length > 80 ? p.message.slice(0, 80) + '...' : p.message) : 'Post update',
+          picture: p.full_picture || '',
+          url: p.permalink_url || `https://facebook.com/${p.id}`,
+          date: p.created_time ? p.created_time.slice(0, 10) : '',
+          likes,
+          comments,
+          shares,
+          totalEng: likes + comments + shares,
+        };
+      });
+
+      out.organicLikes = totalLikes;
+      out.organicComments = totalComments;
+      out.organicShares = totalShares;
+      if (!out.organicEngagement) {
+        out.organicEngagement = totalLikes + totalComments + totalShares;
+      }
+      out.topPosts = topPosts.sort((a, b) => b.totalEng - a.totalEng).slice(0, 4);
+    }
+  } catch (e) {
+    console.error('Error fetching organic page insights:', e.message);
+  }
+
+  return out;
+}
+
+module.exports = { getLoginUrl, exchangeCodeForToken, exchangeForLongLivedToken, pullInsights, fetchCampaignAndCreative, fetchOrganicInsights };

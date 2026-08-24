@@ -474,6 +474,87 @@
     </div>
   </div>
 
+  <!-- 07. ORGANIC SOCIAL & CONTENT PERFORMANCE -->
+  <div class="section" id="organicSection">
+    <div class="section-head"><span class="num">07</span><h2>Organic Social &amp; Content Performance</h2><span class="rule"></span></div>
+    <div class="hint">Facebook Page &amp; Instagram organic reach, video views, and audience engagement without ad spend.</div>
+    
+    <div class="split-panel" style="margin-bottom:18px;">
+      <div class="gauge-label" style="margin-bottom:10px;">Reach Distribution — Paid vs Organic</div>
+      <div class="split-bar" style="margin-bottom:12px;">
+        <div class="split-seg" id="segPaid" style="background:var(--red);width:70%;">PAID 70%</div>
+        <div class="split-seg" id="segOrganic" style="background:var(--good);width:30%;">ORGANIC 30%</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink-dim);flex-wrap:wrap;gap:8px;">
+        <span><span class="swatch" style="background:var(--red);"></span>Paid Reach: <strong id="paidReachDisplay" class="mono" style="color:var(--ink);">0</strong></span>
+        <span><span class="swatch" style="background:var(--good);"></span>Organic Reach: <strong id="organicReachDisplay" class="mono" style="color:var(--ink);">0</strong></span>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px;margin-bottom:18px;">
+      <div class="insight-card" style="border-left-color:var(--good);">
+        <div class="k" style="color:var(--good);">Organic Reach</div>
+        <div class="mono" style="font-size:26px;font-weight:700;margin-top:4px;">
+          <input type="number" id="organicReach" value="0" style="font-size:26px;font-weight:700;width:100%;">
+        </div>
+        <div class="hint" style="margin-top:4px;">Unique organic audience reached</div>
+      </div>
+
+      <div class="insight-card" style="border-left-color:var(--good);">
+        <div class="k" style="color:var(--good);">Organic Impressions</div>
+        <div class="mono" style="font-size:26px;font-weight:700;margin-top:4px;">
+          <input type="number" id="organicImpressions" value="0" style="font-size:26px;font-weight:700;width:100%;">
+        </div>
+        <div class="hint" style="margin-top:4px;">Total organic content views</div>
+      </div>
+
+      <div class="insight-card" style="border-left-color:var(--good);">
+        <div class="k" style="color:var(--good);">Total Organic Engagement</div>
+        <div class="mono" style="font-size:26px;font-weight:700;margin-top:4px;">
+          <input type="number" id="organicEngagement" value="0" style="font-size:26px;font-weight:700;width:100%;">
+        </div>
+        <div class="hint" style="margin-top:4px;">Likes + Comments + Shares + Saves</div>
+      </div>
+
+      <div class="insight-card" style="border-left-color:var(--good);">
+        <div class="k" style="color:var(--good);">Organic Video / Reels Views</div>
+        <div class="mono" style="font-size:26px;font-weight:700;margin-top:4px;">
+          <input type="number" id="organicVideoViews" value="0" style="font-size:26px;font-weight:700;width:100%;">
+        </div>
+        <div class="hint" style="margin-top:4px;">Organic 3-sec / 1-min video plays</div>
+      </div>
+    </div>
+
+    <div class="split-panel">
+      <div class="gauge-label" style="margin-bottom:14px;">Organic Engagement Breakdown</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:16px;text-align:center;">
+        <div style="background:var(--panel-2);border:1px solid var(--line);border-radius:4px;padding:12px;">
+          <div style="font-size:11px;color:var(--steel-lt);text-transform:uppercase;letter-spacing:0.06em;">👍 Likes / Reactions</div>
+          <div class="mono" style="font-size:22px;font-weight:700;margin-top:6px;">
+            <input type="number" id="organicLikes" value="0" style="font-size:22px;font-weight:700;text-align:center;">
+          </div>
+        </div>
+        <div style="background:var(--panel-2);border:1px solid var(--line);border-radius:4px;padding:12px;">
+          <div style="font-size:11px;color:var(--steel-lt);text-transform:uppercase;letter-spacing:0.06em;">💬 Comments</div>
+          <div class="mono" style="font-size:22px;font-weight:700;margin-top:6px;">
+            <input type="number" id="organicComments" value="0" style="font-size:22px;font-weight:700;text-align:center;">
+          </div>
+        </div>
+        <div style="background:var(--panel-2);border:1px solid var(--line);border-radius:4px;padding:12px;">
+          <div style="font-size:11px;color:var(--steel-lt);text-transform:uppercase;letter-spacing:0.06em;">🔄 Shares &amp; Saves</div>
+          <div class="mono" style="font-size:22px;font-weight:700;margin-top:6px;">
+            <input type="number" id="organicShares" value="0" style="font-size:22px;font-weight:700;text-align:center;">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="topPostsContainer" style="margin-top:18px;display:none;">
+      <div class="gauge-label" style="margin-bottom:12px;">Recent Top Performing Content</div>
+      <div id="topPostsGrid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:16px;"></div>
+    </div>
+  </div>
+
   <footer>
     <span>AdPulse IMC — Client Analytics Report</span>
     <span style="display:flex;align-items:center;gap:12px;">
@@ -641,12 +722,40 @@
     });
   }
 
+  function updateOrganic(){
+    const paidReach = parseFloat($('reach')?.value) || 0;
+    const organicReach = parseFloat($('organicReach')?.value) || 0;
+    const totalReach = paidReach + organicReach;
+    const paidPct = totalReach > 0 ? (paidReach / totalReach * 100) : 100;
+    const organicPct = totalReach > 0 ? (organicReach / totalReach * 100) : 0;
+    
+    if($('segPaid')) {
+      $('segPaid').style.width = Math.max(paidPct, 6) + '%';
+      $('segPaid').textContent = 'PAID ' + fmt(paidPct, 0) + '%';
+    }
+    if($('segOrganic')) {
+      $('segOrganic').style.width = Math.max(organicPct, 6) + '%';
+      $('segOrganic').textContent = 'ORGANIC ' + fmt(organicPct, 0) + '%';
+    }
+    if($('paidReachDisplay')) $('paidReachDisplay').textContent = fmt(paidReach);
+    if($('organicReachDisplay')) $('organicReachDisplay').textContent = fmt(organicReach);
+
+    const likes = parseFloat($('organicLikes')?.value) || 0;
+    const comments = parseFloat($('organicComments')?.value) || 0;
+    const shares = parseFloat($('organicShares')?.value) || 0;
+    const totalEng = likes + comments + shares;
+    if(totalEng > 0 && (!$('organicEngagement')?.value || parseFloat($('organicEngagement').value) === 0)){
+      $('organicEngagement').value = totalEng;
+    }
+  }
+
   function updateAll(){
     updateKPIGauges();
     updateGender();
     updateAge();
     updatePlatforms();
     updateLocations();
+    updateOrganic();
   }
 
   ['reach','spend','cpr','reachMax','spendMax','cprMax'].forEach(id => $(id)?.addEventListener('input', updateKPIGauges));
@@ -654,6 +763,7 @@
   document.querySelectorAll('.ageSpendInput').forEach(el => el.addEventListener('input', updateAge));
   document.querySelectorAll('.platReach').forEach(el => el.addEventListener('input', updatePlatforms));
   document.querySelectorAll('.locPctInput').forEach(el => el.addEventListener('input', updateLocations));
+  ['organicReach','organicImpressions','organicEngagement','organicVideoViews','organicLikes','organicComments','organicShares'].forEach(id => $(id)?.addEventListener('input', updateOrganic));
 
   updateAll();
 
@@ -669,7 +779,9 @@
     'fbReach','igReach','msReach','tkReach','ytReach','liReach','postEngagement',
     'gaSessions','gaUsers','gaConversions',
     'ageSpend0','ageSpend1','ageSpend2','ageSpend3',
-    'locPct0','locPct1','locPct2','locPct3'
+    'locPct0','locPct1','locPct2','locPct3',
+    'organicReach','organicImpressions','organicEngagement','organicVideoViews',
+    'organicLikes','organicComments','organicShares'
   ];
   // All editable text fields tracked for change history
   const TEXT_IDS = [
@@ -787,6 +899,30 @@
     renderCreativeMedia(state.creativeMediaUrl, state.campaignName, state.campaignDesc);
     FIELD_IDS.forEach(id => { const el = $(id); if(el && state[id] !== undefined) el.value = state[id]; });
     TEXT_IDS.forEach(id => { const el = $(id); if(el && state[id] !== undefined) el.textContent = state[id]; });
+
+    if(state.topPosts && Array.isArray(state.topPosts) && state.topPosts.length > 0){
+      const container = $('topPostsContainer');
+      const grid = $('topPostsGrid');
+      if(container && grid){
+        container.style.display = 'block';
+        grid.innerHTML = state.topPosts.map(p => `
+          <div style="background:var(--panel-2);border:1px solid var(--line);border-radius:4px;overflow:hidden;display:flex;flex-direction:column;">
+            ${p.picture ? `<img src="${p.picture}" alt="Post thumbnail" style="width:100%;height:120px;object-fit:cover;">` : ''}
+            <div style="padding:12px;display:flex;flex-direction:column;flex:1;">
+              <div style="font-size:11px;color:var(--steel-lt);">${p.date || 'Recent post'}</div>
+              <div style="font-size:12.5px;color:var(--ink);margin:6px 0 10px;line-height:1.4;flex:1;">${p.message}</div>
+              <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink-dim);border-top:1px solid var(--line);padding-top:8px;">
+                <span>👍 ${p.likes}</span>
+                <span>💬 ${p.comments}</span>
+                <span>🔄 ${p.shares}</span>
+              </div>
+              ${p.url ? `<a href="${p.url}" target="_blank" rel="noopener" style="display:block;font-size:11px;color:var(--good);margin-top:8px;text-align:right;">View Post →</a>` : ''}
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
     updateAll();
   }
 

@@ -36,11 +36,26 @@ async function runSyncForUser(userId, req) {
         until,
       }));
     } catch (e) {
-      errors.push('Meta: ' + (e.response?.data?.error?.message || e.message));
+      errors.push('Meta Ads: ' + (e.response?.data?.error?.message || e.message));
     }
   } else {
     if (!tokens.meta) errors.push('Meta: Facebook account not connected yet. Please click Connect Meta first.');
     if (!settings.metaAdAccountId && !settings.metaCampaignId) errors.push('Meta: Please enter your Meta Ad Account ID or Campaign ID.');
+  }
+
+  // Fetch Organic Page & Content Insights if Page ID is specified
+  if (tokens.meta && settings.metaPageId) {
+    try {
+      const organicData = await metaService.fetchOrganicInsights({
+        accessToken: tokens.meta.accessToken,
+        pageId: settings.metaPageId,
+        since,
+        until,
+      });
+      Object.assign(results, organicData);
+    } catch (e) {
+      errors.push('Organic Page: ' + e.message);
+    }
   }
 
   if (tokens.google?.refresh_token && settings.ga4PropertyId) {

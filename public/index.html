@@ -64,8 +64,16 @@
         <input id="metaCampaignId" placeholder="e.g. 120214366924970101">
       </div>
     </div>
-    <label>Result action type <span class="hint">(optional — e.g. lead, purchase, link_click. Leave blank to use a CPM-style proxy for Cost Per Result)</span></label>
-    <input id="metaResultActionType" placeholder="link_click">
+    <div class="grid2" style="margin-top:10px;">
+      <div>
+        <label>Facebook Page ID <span class="hint">(Optional — to auto-sync Organic Page/Posts data)</span></label>
+        <input id="metaPageId" placeholder="e.g. 102938475610293">
+      </div>
+      <div>
+        <label>Result action type <span class="hint">(optional — e.g. lead, purchase, link_click)</span></label>
+        <input id="metaResultActionType" placeholder="link_click">
+      </div>
+    </div>
   </div>
 
   <div class="card">
@@ -98,14 +106,44 @@
   </div>
 
   <div class="card">
-    <h2>Manual Overrides & Optional Channels</h2>
+    <h2>Organic Content & Social Metrics (Manual Overrides & Optional Channels)</h2>
     <div class="grid2">
+      <div>
+        <label>Organic Reach (Facebook + Instagram)</label>
+        <input id="organicReachInput" type="number" placeholder="Auto-calculated or enter override">
+      </div>
+      <div>
+        <label>Organic Impressions / Views</label>
+        <input id="organicImpressionsInput" type="number" placeholder="Auto-calculated or enter override">
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:10px;">
+      <div>
+        <label>Organic Likes / Reactions</label>
+        <input id="organicLikesInput" type="number" placeholder="0">
+      </div>
+      <div>
+        <label>Organic Comments</label>
+        <input id="organicCommentsInput" type="number" placeholder="0">
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:10px;">
+      <div>
+        <label>Organic Shares & Saves</label>
+        <input id="organicSharesInput" type="number" placeholder="0">
+      </div>
+      <div>
+        <label>Organic Video / Reels Views</label>
+        <input id="organicVideoViewsInput" type="number" placeholder="0">
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:10px;">
       <div>
         <label>TikTok Reach</label>
         <input id="tkReach" type="number" placeholder="0">
       </div>
       <div>
-        <label>Post Engagement Override <span class="hint">(Leave blank to auto-fetch from Meta)</span></label>
+        <label>Paid Post Engagement Override <span class="hint">(Leave blank to auto-fetch from Meta)</span></label>
         <input id="postEngagementInput" type="number" placeholder="Auto-calculated from Meta">
       </div>
     </div>
@@ -208,6 +246,7 @@ async function loadStatus(){
     const api = data.apiData || {};
     $('metaAdAccountId').value = s.metaAdAccountId || '';
     $('metaCampaignId').value = s.metaCampaignId || '';
+    $('metaPageId').value = s.metaPageId || '';
     $('metaResultActionType').value = s.metaResultActionType || '';
     $('youtubeChannelId').value = s.youtubeChannelId || 'MINE';
     $('ga4PropertyId').value = s.ga4PropertyId || '';
@@ -219,6 +258,12 @@ async function loadStatus(){
     $('endDate').value = s.endDate || '';
     $('dateRangeDays').value = s.dateRangeDays ?? 30;
     const mo = data.manualOverrides || {};
+    $('organicReachInput').value = mo.organicReach ?? (api.organicReach ?? '');
+    $('organicImpressionsInput').value = mo.organicImpressions ?? (api.organicImpressions ?? '');
+    $('organicLikesInput').value = mo.organicLikes ?? (api.organicLikes ?? '');
+    $('organicCommentsInput').value = mo.organicComments ?? (api.organicComments ?? '');
+    $('organicSharesInput').value = mo.organicShares ?? (api.organicShares ?? '');
+    $('organicVideoViewsInput').value = mo.organicVideoViews ?? (api.organicVideoViews ?? '');
     $('tkReach').value = mo.tkReach ?? '';
     $('postEngagementInput').value = mo.postEngagement ?? (api.postEngagement ?? '');
     $('gaSessionsInput').value = mo.gaSessions ?? (api.gaSessions ?? '');
@@ -242,6 +287,7 @@ async function saveCurrentSettings(){
     body: JSON.stringify({
       metaAdAccountId: $('metaAdAccountId').value.trim(),
       metaCampaignId: $('metaCampaignId').value.trim(),
+      metaPageId: $('metaPageId').value.trim(),
       metaResultActionType: $('metaResultActionType').value.trim(),
       youtubeChannelId: $('youtubeChannelId').value.trim() || 'MINE',
       ga4PropertyId: $('ga4PropertyId').value.trim(),
@@ -255,6 +301,12 @@ async function saveCurrentSettings(){
     }),
   });
   const manual = {};
+  if ($('organicReachInput').value !== '') manual.organicReach = Number($('organicReachInput').value);
+  if ($('organicImpressionsInput').value !== '') manual.organicImpressions = Number($('organicImpressionsInput').value);
+  if ($('organicLikesInput').value !== '') manual.organicLikes = Number($('organicLikesInput').value);
+  if ($('organicCommentsInput').value !== '') manual.organicComments = Number($('organicCommentsInput').value);
+  if ($('organicSharesInput').value !== '') manual.organicShares = Number($('organicSharesInput').value);
+  if ($('organicVideoViewsInput').value !== '') manual.organicVideoViews = Number($('organicVideoViewsInput').value);
   if ($('tkReach').value !== '') manual.tkReach = Number($('tkReach').value);
   if ($('postEngagementInput').value !== '') manual.postEngagement = Number($('postEngagementInput').value);
   if ($('gaSessionsInput').value !== '') manual.gaSessions = Number($('gaSessionsInput').value);
