@@ -460,8 +460,9 @@
   </div>
 
   <!-- PLATFORM DISTRIBUTION -->
-  <div class="section">
-    <div class="section-head"><span class="num">04</span><h2>Platform Distribution</h2><span class="rule"></span></div>
+  <div class="section" id="sectionPlatforms">
+    <div class="section-head"><span class="num" id="platformSectionNum">04</span><h2 id="platformSectionTitle">Platform Distribution</h2><span class="rule"></span></div>
+    <div class="hint" id="platformSectionHint" style="margin-bottom:14px;">Cross-channel performance comparison across all advertising and organic platforms.</div>
     <div class="split-panel platform-grid">
       <div class="donut-wrap">
         <svg width="200" height="200" viewBox="0 0 200 200">
@@ -479,19 +480,19 @@
       <table class="data">
         <thead><tr><th>Platform</th><th>Reach</th><th>Share</th></tr></thead>
         <tbody>
-          <tr><td><span class="swatch" style="background:var(--red);"></span>Facebook</td><td class="num"><input type="number" class="platReach" id="fbReach" value="0"></td><td class="num" id="fbShare">0.0%</td></tr>
-          <tr><td><span class="swatch" style="background:var(--steel-lt);"></span>Instagram</td><td class="num"><input type="number" class="platReach" id="igReach" value="0"></td><td class="num" id="igShare">0.0%</td></tr>
-          <tr><td><span class="swatch" style="background:var(--amber);"></span>Messenger / Threads</td><td class="num"><input type="number" class="platReach" id="msReach" value="0"></td><td class="num" id="msShare">0.0%</td></tr>
-          <tr><td><span class="swatch" style="background:var(--tiktok);"></span>TikTok</td><td class="num"><input type="number" class="platReach" id="tkReach" value="0"></td><td class="num" id="tkShare">0.0%</td></tr>
-          <tr><td><span class="swatch" style="background:var(--youtube);"></span>YouTube</td><td class="num"><input type="number" class="platReach" id="ytReach" value="0"></td><td class="num" id="ytShare">0.0%</td></tr>
-          <tr><td><span class="swatch" style="background:var(--linkedin);"></span>LinkedIn</td><td class="num"><input type="number" class="platReach" id="liReach" value="0"></td><td class="num" id="liShare">0.0%</td></tr>
+          <tr id="rowFb"><td><span class="swatch" style="background:var(--red);"></span>Facebook</td><td class="num"><input type="number" class="platReach" id="fbReach" value="0"></td><td class="num" id="fbShare">0.0%</td></tr>
+          <tr id="rowIg"><td><span class="swatch" style="background:var(--steel-lt);"></span>Instagram</td><td class="num"><input type="number" class="platReach" id="igReach" value="0"></td><td class="num" id="igShare">0.0%</td></tr>
+          <tr id="rowMs"><td><span class="swatch" style="background:var(--amber);"></span>Messenger / Threads</td><td class="num"><input type="number" class="platReach" id="msReach" value="0"></td><td class="num" id="msShare">0.0%</td></tr>
+          <tr id="rowTk"><td><span class="swatch" style="background:var(--tiktok);"></span>TikTok</td><td class="num"><input type="number" class="platReach" id="tkReach" value="0"></td><td class="num" id="tkShare">0.0%</td></tr>
+          <tr id="rowYt"><td><span class="swatch" style="background:var(--youtube);"></span>YouTube</td><td class="num"><input type="number" class="platReach" id="ytReach" value="0"></td><td class="num" id="ytShare">0.0%</td></tr>
+          <tr id="rowLi"><td><span class="swatch" style="background:var(--linkedin);"></span>LinkedIn</td><td class="num"><input type="number" class="platReach" id="liReach" value="0"></td><td class="num" id="liShare">0.0%</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 
   <!-- WEBSITE TRAFFIC -->
-  <div class="section">
+  <div class="section" id="sectionGA4">
     <div class="section-head"><span class="num">05</span><h2>Website Traffic (GA4)</h2><span class="rule"></span></div>
     <div class="split-panel">
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
@@ -513,7 +514,7 @@
   </div>
 
   <!-- AUDIENCE / POST ENGAGEMENT BY LOCATION -->
-  <div class="section">
+  <div class="section" id="sectionLocation">
     <div class="section-head"><span class="num">06</span><h2>Audience — Post Engagement by Location</h2><span class="rule"></span></div>
     <div class="split-panel">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;margin-bottom:22px;">
@@ -847,35 +848,94 @@
     else url.searchParams.set('platform', platform);
     history.replaceState(null, '', url.toString());
 
-    // Update Eyebrow and Description branding
+    // Update Eyebrow and Header
     const eyebrow = document.querySelector('.eyebrow');
-    if(eyebrow){
-      if(platform === 'all') eyebrow.textContent = 'Omnichannel Analytics Report';
-      else if(platform === 'meta') eyebrow.textContent = 'Meta (Facebook & Instagram) Performance Report';
-      else if(platform === 'linkedin') eyebrow.textContent = 'LinkedIn Campaign Performance Report';
-      else if(platform === 'youtube') eyebrow.textContent = 'YouTube Video Analytics Report';
-      else if(platform === 'tiktok') eyebrow.textContent = 'TikTok Campaign Performance Report';
-    }
+    const sec04Title = $('platformSectionTitle');
+    const sec04Hint = $('platformSectionHint');
 
-    // Platform-specific KPI adjustment
-    if(platform === 'linkedin'){
+    // Rows in Platform Table
+    const rowFb = $('rowFb'), rowIg = $('rowIg'), rowMs = $('rowMs'), rowTk = $('rowTk'), rowYt = $('rowYt'), rowLi = $('rowLi');
+    const secGA4 = $('sectionGA4'), secLoc = $('sectionLocation'), secOrg = $('organicSection');
+
+    if(platform === 'all'){
+      if(eyebrow) eyebrow.textContent = 'Omnichannel 360° Analytics Report';
+      if(sec04Title) sec04Title.textContent = 'Multi-Platform Distribution (All Channels)';
+      if(sec04Hint) sec04Hint.textContent = 'Cross-channel performance comparison across all connected advertising & organic platforms.';
+      $('reachTag').textContent = 'Total Omnichannel Reach';
+
+      // Show all rows and sections
+      [rowFb, rowIg, rowMs, rowTk, rowYt, rowLi].forEach(r => r && (r.style.display = ''));
+      [secGA4, secLoc, secOrg].forEach(s => s && (s.style.display = ''));
+
+    } else if(platform === 'linkedin'){
+      if(eyebrow) eyebrow.textContent = 'LinkedIn B2B & Sponsored Performance Report';
+      if(sec04Title) sec04Title.textContent = 'LinkedIn Sponsored & B2B Distribution';
+      if(sec04Hint) sec04Hint.textContent = 'LinkedIn Sponsored Content, InMail/Message Ads, and B2B Audience Delivery.';
+      
       const liVal = parseFloat($('liReach')?.value) || 0;
       if(liVal > 0) $('reach').value = liVal;
-      $('reachTag').textContent = 'LinkedIn Reach';
-    } else if(platform === 'youtube'){
-      const ytVal = parseFloat($('ytReach')?.value) || 0;
-      if(ytVal > 0) $('reach').value = ytVal;
-      $('reachTag').textContent = 'YouTube Views';
-    } else if(platform === 'tiktok'){
-      const tkVal = parseFloat($('tkReach')?.value) || 0;
-      if(tkVal > 0) $('reach').value = tkVal;
-      $('reachTag').textContent = 'TikTok Reach';
+      $('reachTag').textContent = 'LinkedIn Total Reach';
+
+      // Show only LinkedIn row
+      [rowFb, rowIg, rowMs, rowTk, rowYt].forEach(r => r && (r.style.display = 'none'));
+      if(rowLi) rowLi.style.display = '';
+
+      // Hide Meta-specific sections
+      if(secLoc) secLoc.style.display = 'none';
+      if(secOrg) secOrg.style.display = 'none';
+      if(secGA4) secGA4.style.display = 'none';
+
     } else if(platform === 'meta'){
-      const fbVal = (parseFloat($('fbReach')?.value) || 0) + (parseFloat($('igReach')?.value) || 0);
+      if(eyebrow) eyebrow.textContent = 'Meta (Facebook & Instagram) Performance Report';
+      if(sec04Title) sec04Title.textContent = 'Meta Placement Distribution (Facebook & Instagram)';
+      if(sec04Hint) sec04Hint.textContent = 'Delivery breakdown across Facebook Feed, Instagram Stories, Reels, and Messenger.';
+      
+      const fbVal = (parseFloat($('fbReach')?.value) || 0) + (parseFloat($('igReach')?.value) || 0) + (parseFloat($('msReach')?.value) || 0);
       if(fbVal > 0) $('reach').value = fbVal;
       $('reachTag').textContent = 'Meta Total Reach';
-    } else {
-      $('reachTag').textContent = 'Total Campaign Reach';
+
+      // Show Meta rows only
+      [rowFb, rowIg, rowMs].forEach(r => r && (r.style.display = ''));
+      [rowTk, rowYt, rowLi].forEach(r => r && (r.style.display = 'none'));
+
+      // Show Meta sections
+      if(secLoc) secLoc.style.display = '';
+      if(secOrg) secOrg.style.display = '';
+      if(secGA4) secGA4.style.display = '';
+
+    } else if(platform === 'youtube'){
+      if(eyebrow) eyebrow.textContent = 'YouTube Video Analytics & Shorts Report';
+      if(sec04Title) sec04Title.textContent = 'YouTube Video & Shorts Delivery';
+      if(sec04Hint) sec04Hint.textContent = 'Performance across YouTube In-Stream Ads, Shorts, and Channel Videos.';
+      
+      const ytVal = parseFloat($('ytReach')?.value) || 0;
+      if(ytVal > 0) $('reach').value = ytVal;
+      $('reachTag').textContent = 'YouTube Video Views';
+
+      // Show only YouTube row
+      [rowFb, rowIg, rowMs, rowTk, rowLi].forEach(r => r && (r.style.display = 'none'));
+      if(rowYt) rowYt.style.display = '';
+
+      if(secLoc) secLoc.style.display = 'none';
+      if(secOrg) secOrg.style.display = 'none';
+      if(secGA4) secGA4.style.display = 'none';
+
+    } else if(platform === 'tiktok'){
+      if(eyebrow) eyebrow.textContent = 'TikTok Viral Reach & Ad Performance Report';
+      if(sec04Title) sec04Title.textContent = 'TikTok Video & Viral Delivery';
+      if(sec04Hint) sec04Hint.textContent = 'Delivery across TikTok In-Feed Ads, TopView, and Spark Ads.';
+      
+      const tkVal = parseFloat($('tkReach')?.value) || 0;
+      if(tkVal > 0) $('reach').value = tkVal;
+      $('reachTag').textContent = 'TikTok Viral Reach';
+
+      // Show only TikTok row
+      [rowFb, rowIg, rowMs, rowYt, rowLi].forEach(r => r && (r.style.display = 'none'));
+      if(rowTk) rowTk.style.display = '';
+
+      if(secLoc) secLoc.style.display = 'none';
+      if(secOrg) secOrg.style.display = 'none';
+      if(secGA4) secGA4.style.display = 'none';
     }
 
     updateAll();
